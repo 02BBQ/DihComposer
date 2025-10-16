@@ -19,6 +19,7 @@ namespace VFXComposer.UI
         
         private Vector2 lastMousePosition;
         private bool isPanning = false;
+        private bool needsConnectionRedraw = false;
         
         public NodeGraphView()
         {
@@ -41,6 +42,8 @@ namespace VFXComposer.UI
             RegisterCallback<MouseDownEvent>(OnMouseDown);
             RegisterCallback<MouseMoveEvent>(OnMouseMove);
             RegisterCallback<MouseUpEvent>(OnMouseUp);
+            
+            schedule.Execute(UpdateConnections).Every(16);
         }
         
         public void SetGraph(NodeGraph newGraph)
@@ -72,6 +75,24 @@ namespace VFXComposer.UI
             
             nodeView.style.left = node.position.x;
             nodeView.style.top = node.position.y;
+            
+            nodeView.RegisterCallback<MouseMoveEvent>(evt => {
+                if (evt.button == 0) needsConnectionRedraw = true;
+            });
+        }
+        
+        public void RequestConnectionRedraw()
+        {
+            needsConnectionRedraw = true;
+        }
+        
+        private void UpdateConnections()
+        {
+            if (needsConnectionRedraw)
+            {
+                connectionLayer.MarkDirtyRepaint();
+                needsConnectionRedraw = false;
+            }
         }
         
         private void OnWheel(WheelEvent evt)
@@ -79,9 +100,12 @@ namespace VFXComposer.UI
             float delta = evt.delta.y;
             float zoomDelta = delta > 0 ? 0.9f : 1.1f;
             
-            zoomScale = Mathf.Clamp(zoomScale * zoomDelta, 0.25f, 2f);
+            zoomScale = Mathf.Clamp(zoomScale * zoomDelta, 0.1f, 3f);
             
             nodeContainer.transform.scale = new Vector3(zoomScale, zoomScale, 1);
+            gridBackground.SetZoom(zoomScale);
+            
+            needsConnectionRedraw = true;
             
             evt.StopPropagation();
         }
@@ -107,7 +131,7 @@ namespace VFXComposer.UI
                 gridBackground.SetOffset(panOffset);
                 
                 lastMousePosition = evt.mousePosition;
-                connectionLayer.MarkDirtyRepaint();
+                needsConnectionRedraw = true;
                 
                 evt.StopPropagation();
             }

@@ -11,7 +11,8 @@ namespace VFXComposer.UI
         private Label headerLabel;
         private VisualElement slotsContainer;
         
-        private Vector2 dragStartPos;
+        private Vector2 dragStartMousePos;
+        private Vector2 dragStartNodePos;
         private bool isDragging = false;
         
         public NodeView(Node node)
@@ -33,6 +34,7 @@ namespace VFXComposer.UI
             RegisterCallback<MouseDownEvent>(OnMouseDown);
             RegisterCallback<MouseMoveEvent>(OnMouseMove);
             RegisterCallback<MouseUpEvent>(OnMouseUp);
+            RegisterCallback<MouseLeaveEvent>(OnMouseLeave);
         }
         
         private void BuildSlots()
@@ -86,7 +88,10 @@ namespace VFXComposer.UI
             if (evt.button == 0)
             {
                 isDragging = true;
-                dragStartPos = evt.mousePosition;
+                dragStartMousePos = evt.mousePosition;
+                dragStartNodePos = node.position;
+                
+                this.CaptureMouse();
                 
                 BringToFront();
                 AddToClassList("node--selected");
@@ -99,19 +104,11 @@ namespace VFXComposer.UI
         {
             if (isDragging)
             {
-                Vector2 delta = evt.mousePosition - dragStartPos;
+                Vector2 delta = evt.mousePosition - dragStartMousePos;
                 
-                node.position += delta;
+                node.position = dragStartNodePos + delta;
                 style.left = node.position.x;
                 style.top = node.position.y;
-                
-                dragStartPos = evt.mousePosition;
-                
-                var graphView = GetFirstAncestorOfType<NodeGraphView>();
-                if (graphView != null)
-                {
-                    graphView.MarkDirtyRepaint();
-                }
                 
                 evt.StopPropagation();
             }
@@ -119,9 +116,22 @@ namespace VFXComposer.UI
         
         private void OnMouseUp(MouseUpEvent evt)
         {
-            if (evt.button == 0)
+            if (evt.button == 0 && isDragging)
             {
                 isDragging = false;
+                this.ReleaseMouse();
+                RemoveFromClassList("node--selected");
+                
+                evt.StopPropagation();
+            }
+        }
+        
+        private void OnMouseLeave(MouseLeaveEvent evt)
+        {
+            if (isDragging)
+            {
+                isDragging = false;
+                this.ReleaseMouse();
                 RemoveFromClassList("node--selected");
             }
         }
