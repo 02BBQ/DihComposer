@@ -1,0 +1,113 @@
+/* 노드 그래프 배경 그리드 */
+.grid-background {
+    flex-grow: 1;
+    background-color: rgb(30, 30, 30);
+}
+
+/* 작은 그리드 라인 */
+.grid-background--line {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* 큰 그리드 라인 */
+.grid-background--thick-line {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 노드 컨테이너 */
+.node-graph-view {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* 노드 스타일 */
+.node {
+    position: absolute;
+    background-color: rgb(50, 50, 50);
+    border-color: rgb(80, 80, 80);
+    border-width: 2px;
+    border-radius: 8px;
+    min-width: 150px;
+    min-height: 80px;
+    padding: 8px;
+}
+
+.node:hover {
+    border-color: rgb(100, 150, 200);
+}
+
+.node--selected {
+    border-color: rgb(100, 180, 255);
+    border-width: 3px;
+}
+
+/* 노드 헤더 */
+.node__header {
+    background-color: rgb(70, 70, 70);
+    padding: 6px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    -unity-font-style: bold;
+    font-size: 14px;
+}
+
+/* 슬롯 컨테이너 */
+.node__slots {
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+/* 입력 슬롯 */
+.slot-input {
+    flex-direction: row;
+    align-items: center;
+    margin: 4px 0;
+}
+
+/* 출력 슬롯 */
+.slot-output {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    margin: 4px 0;
+}
+
+/* 슬롯 원 (포트) */
+.slot__port {
+    width: 12px;
+    height: 12px;
+    border-radius: 6px;
+    background-color: rgb(100, 100, 100);
+    border-width: 2px;
+    border-color: rgb(150, 150, 150);
+}
+
+.slot__port:hover {
+    background-color: rgb(150, 200, 255);
+    border-color: rgb(200, 220, 255);
+}
+
+.slot__port--connected {
+    background-color: rgb(100, 180, 255);
+}
+
+/* 슬롯 라벨 */
+.slot__label {
+    font-size: 12px;
+    margin-left: 6px;
+    margin-right: 6px;
+    color: rgb(200, 200, 200);
+}
+
+/* 연결선 레이어 */
+.connection-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
