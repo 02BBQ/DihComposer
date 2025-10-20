@@ -6,6 +6,7 @@ using VFXComposer.UI;
 public class ComposerWindow : MonoBehaviour
 {
     [SerializeField] private StyleSheet styleSheet;
+    [SerializeField] private StyleSheet inspectorStyleSheet;
     [SerializeField] private PanelSettings panelSettings;
     
     private UIDocument uiDocument;
@@ -21,53 +22,54 @@ public class ComposerWindow : MonoBehaviour
     void SetupUI()
     {
         uiDocument = gameObject.AddComponent<UIDocument>();
-        
+
         if (panelSettings != null)
         {
             uiDocument.panelSettings = panelSettings;
         }
-        
+
         var rootVisualElement = uiDocument.rootVisualElement;
         rootVisualElement.style.width = Length.Percent(100);
         rootVisualElement.style.height = Length.Percent(100);
-        
+
         if (styleSheet != null)
         {
             rootVisualElement.styleSheets.Add(styleSheet);
         }
-        
+
+        if (inspectorStyleSheet != null)
+        {
+            rootVisualElement.styleSheets.Add(inspectorStyleSheet);
+        }
+
+        // Create horizontal container for graph view and inspector
+        var horizontalContainer = new VisualElement();
+        horizontalContainer.style.flexDirection = FlexDirection.Row;
+        horizontalContainer.style.flexGrow = 1;
+        rootVisualElement.Add(horizontalContainer);
+
+        // Graph view (left side, takes remaining space)
         graphView = new NodeGraphView();
         graphView.style.flexGrow = 1;
-        rootVisualElement.Add(graphView);
+        horizontalContainer.Add(graphView);
+
+        // Inspector (right side, fixed width)
+        var inspector = new NodeInspector(graphView);
+        horizontalContainer.Add(inspector);
+
+        // Connect inspector to graph view
+        graphView.SetInspector(inspector);
     }
     
     void CreateTestGraph()
     {
         graph = new NodeGraph();
-        
-        // var colorNode1 = new ConstantColorNode();
-        // colorNode1.SetColor(Color.red);
-        // colorNode1.position = new Vector2(100, 100);
-        
-        // var colorNode2 = new ConstantColorNode();
-        // colorNode2.SetColor(Color.blue);
-        // colorNode2.position = new Vector2(100, 300);
-        
-        // var blendNode = new BlendNode();
-        // blendNode.position = new Vector2(400, 200);
-        
+        graph.graphName = "New VFX Graph";
+
         var outputNode = new OutputNode();
         outputNode.position = new Vector2(700, 200);
         
-        // graph.AddNode(colorNode1);
-        // graph.AddNode(colorNode2);
-        // graph.AddNode(blendNode);
         graph.AddNode(outputNode);
-        
-        // graph.ConnectSlots(colorNode1.outputSlots[0], blendNode.inputSlots[0]);
-        // graph.ConnectSlots(colorNode2.outputSlots[0], blendNode.inputSlots[1]);
-        // graph.ConnectSlots(blendNode.outputSlots[0], outputNode.inputSlots[0]);
-        
         graphView.SetGraph(graph);
     }
 }

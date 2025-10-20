@@ -1,0 +1,211 @@
+/* 인스펙터 전체 */
+.node-inspector {
+    width: 300px;
+    background-color: rgb(40, 40, 40);
+    border-left-width: 2px;
+    border-left-color: rgb(60, 60, 60);
+}
+
+/* 헤더 */
+.inspector__header {
+    background-color: rgb(50, 50, 50);
+    padding: 12px;
+    border-bottom-width: 2px;
+    border-bottom-color: rgb(100, 150, 255);
+}
+
+.inspector__title {
+    font-size: 18px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+}
+
+/* 프로퍼티 컨테이너 */
+.inspector__properties-container {
+    padding: 12px;
+    background-color: rgb(40, 40, 40);
+}
+
+/* Empty 상태 */
+.inspector__empty {
+    color: rgb(150, 150, 150);
+    font-size: 14px;
+    -unity-text-align: middle-center;
+    margin-top: 20px;
+}
+
+/* Preview */
+.inspector__preview {
+    width: 100%;
+    height: 200px;
+    background-color: rgb(30, 30, 30);
+    border-width: 2px;
+    border-color: rgb(60, 60, 60);
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+/* 섹션 */
+.inspector__section-container {
+    margin-top: 16px;
+    margin-bottom: 8px;
+}
+
+.inspector__section {
+    font-size: 14px;
+    color: rgb(100, 150, 255);
+    -unity-font-style: bold;
+    margin-bottom: 8px;
+}
+
+/* 필드 */
+.inspector__field {
+    margin-bottom: 8px;
+}
+
+.inspector__field Label {
+    color: rgb(255, 255, 255);
+    font-size: 12px;
+    min-width: 80px;
+}
+
+.inspector__field .unity-base-field__input {
+    background-color: rgb(30, 30, 30);
+    border-color: rgb(60, 60, 60);
+    border-width: 1px;
+    border-radius: 3px;
+    color: rgb(255, 255, 255);
+    padding: 4px;
+}
+
+.inspector__field .unity-base-field__input:hover {
+    background-color: rgb(35, 35, 35);
+}
+
+.inspector__field .unity-base-field__input:focus {
+    border-color: rgb(100, 150, 255);
+}
+
+/* Enum Field */
+.inspector__field .unity-enum-field__input {
+    background-color: rgb(30, 30, 30);
+    border-color: rgb(60, 60, 60);
+    color: rgb(255, 255, 255);
+}
+
+.inspector__field .unity-enum-field__text {
+    color: rgb(255, 255, 255);
+}
+
+/* Slider */
+.inspector__field .unity-base-slider__tracker {
+    background-color: rgb(60, 60, 60);
+}
+
+.inspector__field .unity-base-slider__dragger {
+    background-color: rgb(100, 150, 255);
+    border-color: rgb(150, 180, 255);
+}
+
+.inspector__field .unity-base-slider__label {
+    color: rgb(255, 255, 255);
+}
+
+/* 컬러 필드 */
+.inspector__color-field {
+    background-color: rgb(50, 50, 50);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.inspector__color-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.inspector__color-label {
+    color: rgb(255, 255, 255);
+    font-size: 13px;
+    -unity-font-style: bold;
+}
+
+.inspector__color-preview {
+    width: 40px;
+    height: 40px;
+    border-width: 2px;
+    border-color: rgb(80, 80, 80);
+    border-radius: 4px;
+}
+
+/* 컬러 슬라이더 */
+.inspector__color-slider {
+    margin-top: 6px;
+    margin-bottom: 6px;
+}
+
+.inspector__color-slider .unity-base-slider__label {
+    color: rgb(255, 255, 255);
+    min-width: 20px;
+    -unity-font-style: bold;
+}
+
+.inspector__color-slider .unity-base-slider__tracker {
+    background-color: rgb(60, 60, 60);
+}
+
+.inspector__color-slider .unity-base-slider__dragger {
+    background-color: rgb(255, 255, 255);
+}
+
+/* R/G/B/A 슬라이더 색상 */
+.inspector__r-slider .unity-base-slider__dragger {
+    background-color: rgb(255, 80, 80);
+}
+
+.inspector__g-slider .unity-base-slider__dragger {
+    background-color: rgb(80, 255, 80);
+}
+
+.inspector__b-slider .unity-base-slider__dragger {
+    background-color: rgb(80, 80, 255);
+}
+
+.inspector__a-slider .unity-base-slider__dragger {
+    background-color: rgb(200, 200, 200);
+}
+
+/* Info */
+.inspector__info {
+    color: rgb(200, 200, 200);
+    background-color: rgb(50, 50, 50);
+    padding: 10px;
+    border-radius: 4px;
+    border-left-width: 3px;
+    border-left-color: rgb(100, 150, 255);
+    margin-top: 12px;
+    white-space: normal;
+}
+
+/* Delete 버튼 */
+.inspector__delete-button {
+    background-color: rgb(180, 50, 50);
+    color: rgb(255, 255, 255);
+    border-color: rgb(150, 40, 40);
+    border-width: 2px;
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 20px;
+    font-size: 14px;
+    -unity-font-style: bold;
+}
+
+.inspector__delete-button:hover {
+    background-color: rgb(200, 60, 60);
+}
+
+.inspector__delete-button:active {
+    background-color: rgb(160, 40, 40);
+}

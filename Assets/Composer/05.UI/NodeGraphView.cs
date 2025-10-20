@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using System.Collections.Generic;
 using VFXComposer.Core;
+using System;
 
 namespace VFXComposer.UI
 {
@@ -14,12 +15,27 @@ namespace VFXComposer.UI
         private NodeGraph graph;
         private Dictionary<Node, NodeView> nodeViews = new Dictionary<Node, NodeView>();
         
+        private ConnectionDragHandler connectionDragHandler;
+        private NodeCreationMenu creationMenu;
+        
+        private NodeView selectedNodeView;
+        
         private Vector2 panOffset = Vector2.zero;
         private float zoomScale = 1f;
-        
+
+        public Vector2 PanOffset => panOffset;
+        public float ZoomScale => zoomScale;
+
+        private NodeInspector inspector;
+
         private Vector2 lastMousePosition;
         private bool isPanning = false;
         private bool needsConnectionRedraw = false;
+        
+        private bool isLongPressing = false;
+        private Vector2 longPressStartPos;
+        private float longPressTimer = 0f;
+        private const float longPressThreshold = 0.3f;
         
         public NodeGraphView()
         {
@@ -31,6 +47,7 @@ namespace VFXComposer.UI
             connectionLayer = new VisualElement();
             connectionLayer.AddToClassList("connection-layer");
             connectionLayer.generateVisualContent += DrawConnections;
+            connectionLayer.pickingMode = PickingMode.Ignore;
             Add(connectionLayer);
             
             nodeContainer = new VisualElement();
@@ -38,12 +55,22 @@ namespace VFXComposer.UI
             nodeContainer.pickingMode = PickingMode.Ignore;
             Add(nodeContainer);
             
+            connectionDragHandler = new ConnectionDragHandler(this);
+            
+            creationMenu = new NodeCreationMenu(this);
+            creationMenu.Hide();
+            Add(creationMenu);
+            
             RegisterCallback<WheelEvent>(OnWheel);
             RegisterCallback<MouseDownEvent>(OnMouseDown);
             RegisterCallback<MouseMoveEvent>(OnMouseMove);
             RegisterCallback<MouseUpEvent>(OnMouseUp);
+            RegisterCallback<KeyDownEvent>(OnKeyDown);
+            
+            focusable = true;
             
             schedule.Execute(UpdateConnections).Every(16);
+            schedule.Execute(CheckLongPress).Every(50);
         }
         
         public void SetGraph(NodeGraph newGraph)
@@ -56,14 +83,18 @@ namespace VFXComposer.UI
         {
             nodeContainer.Clear();
             nodeViews.Clear();
-            
+
             if (graph == null) return;
-            
+
             foreach (var node in graph.nodes)
             {
                 AddNodeView(node);
             }
-            
+
+            // Execute all nodes to generate previews
+            var executor = new NodeExecutor(graph);
+            executor.Execute();
+
             connectionLayer.MarkDirtyRepaint();
         }
         
@@ -81,9 +112,130 @@ namespace VFXComposer.UI
             });
         }
         
-        public void RequestConnectionRedraw()
+        public void AddNode(Node node)
         {
+            if (graph == null) return;
+            
+            graph.AddNode(node);
+            AddNodeView(node);
+            
+            var executor = new NodeExecutor(graph);
+            executor.ExecuteNode(node);
+            
             needsConnectionRedraw = true;
+        }
+        
+        public void ConnectSlots(NodeSlot output, NodeSlot input)
+        {
+            if (graph == null) return;
+            
+            var connection = graph.ConnectSlots(output, input);
+            if (connection != null)
+            {
+                var executor = new NodeExecutor(graph);
+                executor.Execute();
+                
+                needsConnectionRedraw = true;
+            }
+        }
+        
+        public void StartSlotDrag(NodeSlot slot, NodeView nodeView, Vector2 position)
+        {
+            connectionDragHandler.StartDrag(slot, nodeView, position);
+        }
+        
+        public void EndSlotDrag(NodeSlot slot, NodeView nodeView)
+        {
+            connectionDragHandler.EndDrag(slot, nodeView);
+            needsConnectionRedraw = true;
+        }
+        
+        public void SelectNode(NodeView nodeView)
+        {
+            if (selectedNodeView != null && selectedNodeView != nodeView)
+            {
+                selectedNodeView.Deselect();
+            }
+            selectedNodeView = nodeView;
+            Focus();
+
+            // Update inspector
+            if (inspector != null)
+            {
+                inspector.ShowNodeProperties(nodeView.node);
+            }
+        }
+
+        public void SetInspector(NodeInspector nodeInspector)
+        {
+            inspector = nodeInspector;
+        }
+
+        public NodeGraph GetGraph()
+        {
+            return graph;
+        }
+
+        public void DeselectAll()
+        {
+            if (selectedNodeView != null)
+            {
+                selectedNodeView.Deselect();
+                selectedNodeView = null;
+            }
+
+            // Clear inspector
+            if (inspector != null)
+            {
+                inspector.ShowNodeProperties(null);
+            }
+        }
+        
+        public void DeleteNode(Node node)
+        {
+            if (node == null || graph == null) return;
+            if (!nodeViews.ContainsKey(node)) return;
+
+            var nodeView = nodeViews[node];
+
+            // Remove from dictionary
+            nodeViews.Remove(node);
+
+            // Remove from UI
+            nodeContainer.Remove(nodeView);
+
+            // Remove from graph
+            graph.RemoveNode(node);
+
+            // Clear selection if this was the selected node
+            if (selectedNodeView != null && selectedNodeView.node == node)
+            {
+                selectedNodeView = null;
+            }
+
+            // Update inspector
+            if (inspector != null)
+            {
+                inspector.ShowNodeProperties(null);
+            }
+
+            needsConnectionRedraw = true;
+        }
+
+        private void DeleteSelectedNode()
+        {
+            if (selectedNodeView == null) return;
+
+            DeleteNode(selectedNodeView.node);
+        }
+        
+        private void OnKeyDown(KeyDownEvent evt)
+        {
+            if (evt.keyCode == KeyCode.Delete || evt.keyCode == KeyCode.Backspace)
+            {
+                DeleteSelectedNode();
+                evt.StopPropagation();
+            }
         }
         
         private void UpdateConnections()
@@ -112,16 +264,55 @@ namespace VFXComposer.UI
         
         private void OnMouseDown(MouseDownEvent evt)
         {
+            Focus();
+            
+            if (evt.button == 1)
+            {
+                creationMenu.Show(evt.mousePosition);
+                evt.StopPropagation();
+                return;
+            }
+            
             if (evt.button == 2 || (evt.button == 0 && evt.altKey))
             {
                 isPanning = true;
                 lastMousePosition = evt.mousePosition;
                 evt.StopPropagation();
             }
+            else if (evt.button == 0)
+            {
+                creationMenu.Hide();
+                DeselectAll();
+                
+                isLongPressing = true;
+                longPressStartPos = evt.mousePosition;
+                longPressTimer = 0f;
+            }
+        }
+        
+        private void CheckLongPress()
+        {
+            if (isLongPressing)
+            {
+                longPressTimer += 0.05f;
+                
+                if (longPressTimer >= longPressThreshold)
+                {
+                    creationMenu.Show(longPressStartPos);
+                    isLongPressing = false;
+                }
+            }
         }
         
         private void OnMouseMove(MouseMoveEvent evt)
         {
+            if (connectionDragHandler.IsDragging)
+            {
+                connectionDragHandler.UpdateDrag(evt.mousePosition);
+                evt.StopPropagation();
+                return;
+            }
+            
             if (isPanning)
             {
                 Vector2 delta = evt.mousePosition - lastMousePosition;
@@ -135,6 +326,15 @@ namespace VFXComposer.UI
                 
                 evt.StopPropagation();
             }
+            
+            if (isLongPressing)
+            {
+                float dist = Vector2.Distance(evt.mousePosition, longPressStartPos);
+                if (dist > 10f)
+                {
+                    isLongPressing = false;
+                }
+            }
         }
         
         private void OnMouseUp(MouseUpEvent evt)
@@ -142,6 +342,16 @@ namespace VFXComposer.UI
             if (evt.button == 2 || evt.button == 0)
             {
                 isPanning = false;
+            }
+            
+            if (evt.button == 0)
+            {
+                isLongPressing = false;
+            }
+            
+            if (connectionDragHandler.IsDragging)
+            {
+                connectionDragHandler.CancelDrag();
             }
         }
         
@@ -181,15 +391,14 @@ namespace VFXComposer.UI
             }
         }
         
-        private Vector2 GetSlotWorldPosition(Node node, NodeSlot slot, bool isOutput)
+        public Vector2 GetSlotWorldPosition(Node node, NodeSlot slot, bool isOutput)
         {
+            if (!nodeViews.ContainsKey(node)) return Vector2.zero;
+
             var nodeView = nodeViews[node];
-            var nodePos = new Vector2(node.position.x, node.position.y);
-            
-            float slotY = 40 + (isOutput ? node.outputSlots.IndexOf(slot) : node.inputSlots.IndexOf(slot)) * 24;
-            float slotX = isOutput ? 150 : 0;
-            
-            return (nodePos + new Vector2(slotX, slotY)) * zoomScale + panOffset;
+            Vector2 slotPos = nodeView.GetSlotPosition(slot);
+
+            return slotPos * zoomScale + panOffset;
         }
     }
 }

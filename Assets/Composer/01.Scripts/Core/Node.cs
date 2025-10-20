@@ -20,7 +20,7 @@ namespace VFXComposer.Core
         
         public bool isExecuted { get; protected set; } = false;
         
-        protected Dictionary<string, object> cachedOutputs = new Dictionary<string, object>();
+        public Dictionary<string, object> cachedOutputs { get; protected set; } = new();
         
         public Node()
         {

@@ -32,12 +32,12 @@ namespace VFXComposer.Core
         /// <summary>
         /// 데이터 타입에 따른 연결선 색상 반환
         /// </summary>
-        private Color GetColorForDataType(DataType dataType)
+        public static Color GetColorForDataType(DataType dataType)
         {
             switch (dataType)
             {
                 case DataType.Texture:
-                    return new Color(0.8f, 0.4f, 1f); // 보라색
+                    return Color.white; // 하얀색
                 case DataType.Float:
                     return new Color(0.3f, 0.8f, 0.3f); // 녹색
                 case DataType.Vector2:
