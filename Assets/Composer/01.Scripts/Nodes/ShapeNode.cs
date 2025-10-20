@@ -19,12 +19,23 @@ namespace VFXComposer.Core
         protected override void InitializeSlots()
         {
             nodeName = "Shape";
+            AddInputSlot("size_in", "Size", DataType.Float);
+            AddInputSlot("smoothness_in", "Smoothness", DataType.Float);
             AddOutputSlot("texture_out", "Texture", DataType.Texture);
         }
         
         public override void Execute()
         {
             if (isExecuted) return;
+
+            // Get values from inputs or use field values
+            float sizeValue = HasInputConnection("size_in")
+                ? GetInputValue<float>("size_in")
+                : size;
+
+            float smoothnessValue = HasInputConnection("smoothness_in")
+                ? GetInputValue<float>("smoothness_in")
+                : smoothness;
 
             if (shapeMaterial == null)
             {
@@ -51,8 +62,8 @@ namespace VFXComposer.Core
             }
 
             shapeMaterial.SetInt("_ShapeType", (int)shapeType);
-            shapeMaterial.SetFloat("_Size", size);
-            shapeMaterial.SetFloat("_Smoothness", smoothness);
+            shapeMaterial.SetFloat("_Size", sizeValue);
+            shapeMaterial.SetFloat("_Smoothness", smoothnessValue);
             shapeMaterial.SetColor("_FillColor", fillColor);
             shapeMaterial.SetColor("_BackgroundColor", backgroundColor);
 
@@ -60,6 +71,12 @@ namespace VFXComposer.Core
 
             SetOutputValue("texture_out", outputTexture);
             isExecuted = true;
+        }
+
+        private bool HasInputConnection(string slotId)
+        {
+            var slot = inputSlots.Find(s => s.id == slotId);
+            return slot != null && slot.connectedSlot != null;
         }
 
         private void CreateFallbackTexture()

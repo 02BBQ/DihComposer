@@ -68,9 +68,10 @@ namespace VFXComposer.UI
             RegisterCallback<KeyDownEvent>(OnKeyDown);
             
             focusable = true;
-            
+
             schedule.Execute(UpdateConnections).Every(16);
             schedule.Execute(CheckLongPress).Every(50);
+            schedule.Execute(UpdateGraph).Every(16); // Update graph every frame for Time node
         }
         
         public void SetGraph(NodeGraph newGraph)
@@ -253,7 +254,16 @@ namespace VFXComposer.UI
                 needsConnectionRedraw = false;
             }
         }
-        
+
+        private void UpdateGraph()
+        {
+            if (graph != null)
+            {
+                var executor = new NodeExecutor(graph);
+                executor.Execute();
+            }
+        }
+
         private void OnWheel(WheelEvent evt)
         {
             float delta = evt.delta.y;

@@ -18,20 +18,26 @@ namespace VFXComposer.Core
         protected override void InitializeSlots()
         {
             nodeName = "Gradient";
+            AddInputSlot("angle_in", "Angle", DataType.Float);
             AddOutputSlot("texture_out", "Texture", DataType.Texture);
         }
         
         public override void Execute()
         {
             if (isExecuted) return;
-            
+
+            // Get angle from input or use field value
+            float angleValue = HasInputConnection("angle_in")
+                ? GetInputValue<float>("angle_in")
+                : angle;
+
             if (gradientMaterial == null)
             {
                 if (cachedShader == null)
                 {
                     cachedShader = Shader.Find("VFXComposer/Gradient");
                 }
-                
+
                 if (cachedShader != null)
                 {
                     gradientMaterial = new Material(cachedShader);
@@ -51,13 +57,19 @@ namespace VFXComposer.Core
 
             gradientMaterial.SetColor("_ColorA", colorA);
             gradientMaterial.SetColor("_ColorB", colorB);
-            gradientMaterial.SetFloat("_Angle", angle * Mathf.Deg2Rad);
+            gradientMaterial.SetFloat("_Angle", angleValue * Mathf.Deg2Rad);
             gradientMaterial.SetInt("_GradientType", (int)gradientType);
 
             TextureRenderer.DrawQuad(outputTexture, gradientMaterial);
 
             SetOutputValue("texture_out", outputTexture);
             isExecuted = true;
+        }
+
+        private bool HasInputConnection(string slotId)
+        {
+            var slot = inputSlots.Find(s => s.id == slotId);
+            return slot != null && slot.connectedSlot != null;
         }
 
         private void CreateFallbackTexture()

@@ -22,6 +22,7 @@ namespace VFXComposer.UI
             new NodeMenuItem("Math/Subtract", () => new SubtractNode()),
             new NodeMenuItem("Math/Multiply", () => new MultiplyNode()),
             new NodeMenuItem("Math/Power", () => new PowerNode()),
+            new NodeMenuItem("Animation/Time", () => new TimeNode()),
             // OutputNode는 자동으로 생성되므로 메뉴에서 제외
         };
         

@@ -100,6 +100,10 @@ namespace VFXComposer.UI
             {
                 BuildPowerNodeInspector(powerNode);
             }
+            else if (node is TimeNode timeNode)
+            {
+                BuildTimeNodeInspector(timeNode);
+            }
             else if (node is OutputNode outputNode)
             {
                 BuildOutputNodeInspector(outputNode);
@@ -292,6 +296,25 @@ namespace VFXComposer.UI
             AddSection("ℹ️ Info");
 
             var infoLabel = new Label("Power operation:\n• A ^ B (both textures)\n• A ^ exp (texture only)\n• exp (no inputs)");
+            infoLabel.AddToClassList("inspector__info");
+            propertiesContainer.Add(infoLabel);
+        }
+
+        private void BuildTimeNodeInspector(TimeNode node)
+        {
+            AddSection("⏱️ Time");
+
+            AddField<FloatField, float>("Speed", node.speed, newValue => node.speed = newValue);
+            AddField<FloatField, float>("Offset", node.offset, newValue => node.offset = newValue);
+
+            AddSection("🔁 Loop");
+
+            AddField<Toggle, bool>("Use Loop", node.useLoop, newValue => node.useLoop = newValue);
+            AddField<FloatField, float>("Loop Duration", node.loopDuration, newValue => node.loopDuration = Mathf.Max(0.01f, newValue));
+
+            AddSection("ℹ️ Info");
+
+            var infoLabel = new Label("Outputs time value:\n• Value: Float time\n• Texture: Grayscale (0-1)\n\nUse for animations!");
             infoLabel.AddToClassList("inspector__info");
             propertiesContainer.Add(infoLabel);
         }
