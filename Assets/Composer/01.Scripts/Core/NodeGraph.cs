@@ -84,13 +84,13 @@ namespace VFXComposer.Core
                 DisconnectSlot(input);
             }
             
-            // 연결 생성
-            var connection = new NodeConnection(output, input);
+            // 연결 생성 (graph 참조 전달)
+            var connection = new NodeConnection(output, input, this);
             connections.Add(connection);
-            
+
             // 슬롯에 연결 정보 저장
             input.connectedSlot = output;
-            
+
             return connection;
         }
         

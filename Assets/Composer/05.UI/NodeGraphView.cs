@@ -11,15 +11,15 @@ namespace VFXComposer.UI
         private GridBackground gridBackground;
         private VisualElement nodeContainer;
         private VisualElement connectionLayer;
-        
+
         private NodeGraph graph;
         private Dictionary<Node, NodeView> nodeViews = new Dictionary<Node, NodeView>();
-        
+
         private ConnectionDragHandler connectionDragHandler;
         private NodeCreationMenu creationMenu;
-        
+
         private NodeView selectedNodeView;
-        
+
         private Vector2 panOffset = Vector2.zero;
         private float zoomScale = 1f;
 
@@ -27,6 +27,7 @@ namespace VFXComposer.UI
         public float ZoomScale => zoomScale;
 
         private NodeInspector inspector;
+        private CommandHistory commandHistory = new CommandHistory();
 
         private Vector2 lastMousePosition;
         private bool isPanning = false;
@@ -116,28 +117,42 @@ namespace VFXComposer.UI
         public void AddNode(Node node)
         {
             if (graph == null) return;
-            
-            graph.AddNode(node);
-            AddNodeView(node);
-            
-            var executor = new NodeExecutor(graph);
-            executor.ExecuteNode(node);
-            
-            needsConnectionRedraw = true;
+
+            // Use command for undo/redo with UI callbacks
+            var command = new AddNodeCommand(
+                graph,
+                node,
+                onAdd: (n) => {
+                    AddNodeView(n);
+                    var executor = new NodeExecutor(graph);
+                    executor.ExecuteNode(n);
+                    needsConnectionRedraw = true;
+                },
+                onRemove: (n) => {
+                    if (nodeViews.ContainsKey(n))
+                    {
+                        var nodeView = nodeViews[n];
+                        nodeViews.Remove(n);
+                        nodeContainer.Remove(nodeView);
+                    }
+                    needsConnectionRedraw = true;
+                }
+            );
+            commandHistory.ExecuteCommand(command);
         }
-        
+
         public void ConnectSlots(NodeSlot output, NodeSlot input)
         {
             if (graph == null) return;
-            
-            var connection = graph.ConnectSlots(output, input);
-            if (connection != null)
-            {
-                var executor = new NodeExecutor(graph);
-                executor.Execute();
-                
-                needsConnectionRedraw = true;
-            }
+
+            // Use command for undo/redo
+            var command = new ConnectSlotsCommand(graph, output, input);
+            commandHistory.ExecuteCommand(command);
+
+            var executor = new NodeExecutor(graph);
+            executor.Execute();
+
+            needsConnectionRedraw = true;
         }
         
         public void StartSlotDrag(NodeSlot slot, NodeView nodeView, Vector2 position)
@@ -204,30 +219,36 @@ namespace VFXComposer.UI
                 return;
             }
 
-            var nodeView = nodeViews[node];
+            // Use command for undo/redo with UI callbacks
+            var command = new DeleteNodeCommand(
+                graph,
+                node,
+                onRemove: (n) => {
+                    if (nodeViews.ContainsKey(n))
+                    {
+                        var nodeView = nodeViews[n];
+                        nodeViews.Remove(n);
+                        nodeContainer.Remove(nodeView);
+                    }
 
-            // Remove from dictionary
-            nodeViews.Remove(node);
+                    if (selectedNodeView != null && selectedNodeView.node == n)
+                    {
+                        selectedNodeView = null;
+                    }
 
-            // Remove from UI
-            nodeContainer.Remove(nodeView);
+                    if (inspector != null)
+                    {
+                        inspector.ShowNodeProperties(null);
+                    }
 
-            // Remove from graph
-            graph.RemoveNode(node);
-
-            // Clear selection if this was the selected node
-            if (selectedNodeView != null && selectedNodeView.node == node)
-            {
-                selectedNodeView = null;
-            }
-
-            // Update inspector
-            if (inspector != null)
-            {
-                inspector.ShowNodeProperties(null);
-            }
-
-            needsConnectionRedraw = true;
+                    needsConnectionRedraw = true;
+                },
+                onAdd: (n) => {
+                    AddNodeView(n);
+                    needsConnectionRedraw = true;
+                }
+            );
+            commandHistory.ExecuteCommand(command);
         }
 
         private void DeleteSelectedNode()
@@ -239,11 +260,46 @@ namespace VFXComposer.UI
         
         private void OnKeyDown(KeyDownEvent evt)
         {
+            // Delete key
             if (evt.keyCode == KeyCode.Delete || evt.keyCode == KeyCode.Backspace)
             {
                 DeleteSelectedNode();
                 evt.StopPropagation();
             }
+            // Undo: Ctrl+Z (or Cmd+Z on Mac)
+            else if ((evt.ctrlKey || evt.commandKey) && evt.keyCode == KeyCode.Z && !evt.shiftKey)
+            {
+                Undo();
+                evt.StopPropagation();
+            }
+            // Redo: Ctrl+Y or Ctrl+Shift+Z (or Cmd+Shift+Z on Mac)
+            else if ((evt.ctrlKey || evt.commandKey) && (evt.keyCode == KeyCode.Y || (evt.shiftKey && evt.keyCode == KeyCode.Z)))
+            {
+                Redo();
+                evt.StopPropagation();
+            }
+        }
+
+        /// <summary>
+        /// Undo 실행
+        /// </summary>
+        public void Undo()
+        {
+            if (!commandHistory.CanUndo) return;
+
+            commandHistory.Undo();
+            needsConnectionRedraw = true;
+        }
+
+        /// <summary>
+        /// Redo 실행
+        /// </summary>
+        public void Redo()
+        {
+            if (!commandHistory.CanRedo) return;
+
+            commandHistory.Redo();
+            needsConnectionRedraw = true;
         }
         
         private void UpdateConnections()

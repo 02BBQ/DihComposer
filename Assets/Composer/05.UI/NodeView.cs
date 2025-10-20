@@ -4,17 +4,20 @@ using VFXComposer.Core;
 
 namespace VFXComposer.UI
 {
-    public class NodeView : VisualElement
+    public class NodeView : VisualElement, ISelectable, IDeletable
     {
         public Node node;
-        
+
         private Label headerLabel;
         private VisualElement slotsContainer;
-        
+
         private Vector2 dragStartMousePos;
         private Vector2 dragStartNodePos;
         private bool isDragging = false;
         private bool isSlotDragging = false;
+        private bool isSelected = false;
+
+        public bool IsSelected => isSelected;
         
         public NodeView(Node node)
         {
@@ -213,9 +216,39 @@ namespace VFXComposer.UI
             }
         }
         
+        public void Select()
+        {
+            isSelected = true;
+            AddToClassList("node--selected");
+            OnSelectionChanged(true);
+        }
+
         public void Deselect()
         {
+            isSelected = false;
             RemoveFromClassList("node--selected");
+            OnSelectionChanged(false);
+        }
+
+        public void OnSelectionChanged(bool selected)
+        {
+            // Hook for future use
+        }
+
+        public bool CanDelete()
+        {
+            return !(node is OutputNode);
+        }
+
+        public void Delete()
+        {
+            var graphView = GetFirstAncestorOfType<NodeGraphView>();
+            graphView?.DeleteNode(node);
+        }
+
+        public string GetDeleteDescription()
+        {
+            return $"Delete {node.nodeName}";
         }
         
         public Vector2 GetSlotPosition(NodeSlot slot)
@@ -225,16 +258,20 @@ namespace VFXComposer.UI
                 node.outputSlots.IndexOf(slot) :
                 node.inputSlots.IndexOf(slot);
 
-            float headerHeight = 30;
-            float previewHeight = 128;
-            float slotHeight = 20;
-            float slotSpacing = 4;
+            // Match CSS values from GridBackground.uss
+            float nodePadding = 8;        // .node padding
+            float headerHeight = 36;      // header padding + font + margin-bottom (약간 여유)
+            float previewHeight = 128;    // preview margin-top + height + margin-bottom
+            float slotMargin = 4;         // .slot-input/.slot-output margin
+            float portSize = 12;          // .slot__port height
 
-            float yPos = headerHeight + previewHeight + (slotIndex * (slotHeight + slotSpacing)) + slotHeight / 2;
+            // Calculate slot center position
+            float slotHeight = portSize + (slotMargin * 2);
+            float yPos = nodePadding + headerHeight + previewHeight + (slotIndex * slotHeight) + portSize / 2;
 
-            // Use fixed width instead of resolvedStyle.width for consistency
+            // X position - port는 노드 경계에 위치
             float nodeWidth = 150;
-            float xPos = isOutput ? nodeWidth - 5 : 5;
+            float xPos = isOutput ? nodeWidth : 0;
 
             return new Vector2(node.position.x + xPos, node.position.y + yPos);
         }
