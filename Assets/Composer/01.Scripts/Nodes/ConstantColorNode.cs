@@ -1,0 +1,23 @@
+using UnityEngine;
+
+namespace VFXComposer.Core
+{
+    public class ConstantColorNode : Node
+    {
+        public Color color = Color.white;
+
+        protected override void InitializeSlots()
+        {
+            nodeName = "Constant Color";
+            AddOutputSlot("color_out", "Color", DataType.Color);
+        }
+
+        public override void Execute()
+        {
+            if (isExecuted) return;
+
+            SetOutputValue("color_out", color);
+            isExecuted = true;
+        }
+    }
+}

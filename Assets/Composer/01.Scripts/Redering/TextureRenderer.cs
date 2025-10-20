@@ -36,24 +36,9 @@ namespace VFXComposer.Rendering
         
         public static void DrawQuad(RenderTexture target, Material material)
         {
-            RenderTexture previous = RenderTexture.active;
-            RenderTexture.active = target;
-            
-            material.SetPass(0);
-            
-            GL.PushMatrix();
-            GL.LoadOrtho();
-            
-            GL.Begin(GL.QUADS);
-            GL.TexCoord2(0, 0); GL.Vertex3(0, 0, 0);
-            GL.TexCoord2(1, 0); GL.Vertex3(1, 0, 0);
-            GL.TexCoord2(1, 1); GL.Vertex3(1, 1, 0);
-            GL.TexCoord2(0, 1); GL.Vertex3(0, 1, 0);
-            GL.End();
-            
-            GL.PopMatrix();
-            
-            RenderTexture.active = previous;
+            // Use Graphics.Blit with null source for generator shaders
+            // This works outside of rendering callbacks unlike GL.Begin/GL.End
+            Graphics.Blit(null, target, material);
         }
         
         public static Texture2D RenderTextureToTexture2D(RenderTexture rt)

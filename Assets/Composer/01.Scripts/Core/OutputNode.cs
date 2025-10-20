@@ -23,19 +23,23 @@ namespace VFXComposer.Core
         public override void Execute()
         {
             if (isExecuted) return;
-            
+
             // Color 입력이 있으면 가져오기
             if (HasInputConnection("color_in"))
             {
                 outputColor = GetInputValue<Color>("color_in");
+                // Preview를 위해 cachedOutputs에도 저장
+                SetOutputValue("preview_color", outputColor);
             }
-            
+
             // Texture 입력이 있으면 가져오기
             if (HasInputConnection("texture_in"))
             {
                 outputTexture = GetInputValue<RenderTexture>("texture_in");
+                // Preview를 위해 cachedOutputs에도 저장
+                SetOutputValue("preview_texture", outputTexture);
             }
-            
+
             isExecuted = true;
         }
         

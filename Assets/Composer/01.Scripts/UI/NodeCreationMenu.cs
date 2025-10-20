@@ -13,12 +13,16 @@ namespace VFXComposer.UI
         
         private static List<NodeMenuItem> nodeTypes = new List<NodeMenuItem>
         {
-            // new NodeMenuItem("Generator/Constant Color", () => new ConstantColorNode()),
+            new NodeMenuItem("Generator/Constant Color", () => new ConstantColorNode()),
             new NodeMenuItem("Generator/Gradient", () => new GradientNode()),
             new NodeMenuItem("Generator/Shape", () => new ShapeNode()),
             new NodeMenuItem("Generator/Noise", () => new NoiseNode()),
-            // new NodeMenuItem("Color/Blend", () => new BlendNode()),
-            new NodeMenuItem("Output/Output", () => new OutputNode()),
+            new NodeMenuItem("Color/Blend", () => new BlendNode()),
+            new NodeMenuItem("Math/Add", () => new AddNode()),
+            new NodeMenuItem("Math/Subtract", () => new SubtractNode()),
+            new NodeMenuItem("Math/Multiply", () => new MultiplyNode()),
+            new NodeMenuItem("Math/Power", () => new PowerNode()),
+            // OutputNode는 자동으로 생성되므로 메뉴에서 제외
         };
         
         public NodeCreationMenu(NodeGraphView view)

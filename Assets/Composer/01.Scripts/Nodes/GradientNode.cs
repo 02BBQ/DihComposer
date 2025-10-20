@@ -38,23 +38,40 @@ namespace VFXComposer.Core
                 }
                 else
                 {
-                    Debug.LogError("Gradient shader not found!");
+                    Debug.LogError("Gradient shader not found! Creating fallback texture.");
+                    CreateFallbackTexture();
                     return;
                 }
             }
-            
+
             if (outputTexture == null)
             {
                 outputTexture = TextureRenderer.CreateRenderTexture();
             }
-            
+
             gradientMaterial.SetColor("_ColorA", colorA);
             gradientMaterial.SetColor("_ColorB", colorB);
             gradientMaterial.SetFloat("_Angle", angle * Mathf.Deg2Rad);
             gradientMaterial.SetInt("_GradientType", (int)gradientType);
-            
+
             TextureRenderer.DrawQuad(outputTexture, gradientMaterial);
-            
+
+            SetOutputValue("texture_out", outputTexture);
+            isExecuted = true;
+        }
+
+        private void CreateFallbackTexture()
+        {
+            if (outputTexture == null)
+            {
+                outputTexture = TextureRenderer.CreateRenderTexture();
+            }
+
+            // Fill with colorB as fallback
+            RenderTexture.active = outputTexture;
+            GL.Clear(true, true, colorB);
+            RenderTexture.active = null;
+
             SetOutputValue("texture_out", outputTexture);
             isExecuted = true;
         }

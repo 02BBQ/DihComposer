@@ -25,8 +25,23 @@ namespace VFXComposer.Core
         {
             if (!nodes.Contains(node))
             {
+                // OutputNode는 하나만 존재해야 함
+                if (node is OutputNode && GetOutputNode() != null)
+                {
+                    Debug.LogWarning("OutputNode already exists in the graph!");
+                    return;
+                }
+
                 nodes.Add(node);
             }
+        }
+
+        /// <summary>
+        /// OutputNode 가져오기
+        /// </summary>
+        public OutputNode GetOutputNode()
+        {
+            return nodes.OfType<OutputNode>().FirstOrDefault();
         }
         
         /// <summary>
@@ -34,9 +49,16 @@ namespace VFXComposer.Core
         /// </summary>
         public void RemoveNode(Node node)
         {
+            // OutputNode는 삭제 불가능
+            if (node is OutputNode)
+            {
+                Debug.LogWarning("Cannot delete OutputNode!");
+                return;
+            }
+
             // 연결된 슬롯들 먼저 해제
             DisconnectNode(node);
-            
+
             nodes.Remove(node);
         }
         

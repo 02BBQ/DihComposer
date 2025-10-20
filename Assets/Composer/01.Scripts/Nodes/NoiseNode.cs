@@ -39,24 +39,41 @@ namespace VFXComposer.Core
                 }
                 else
                 {
-                    Debug.LogError("Noise shader not found!");
+                    Debug.LogError("Noise shader not found! Creating fallback texture.");
+                    CreateFallbackTexture();
                     return;
                 }
             }
-            
+
             if (outputTexture == null)
             {
                 outputTexture = TextureRenderer.CreateRenderTexture();
             }
-            
+
             noiseMaterial.SetInt("_NoiseType", (int)noiseType);
             noiseMaterial.SetFloat("_Scale", scale);
             noiseMaterial.SetInt("_Octaves", octaves);
             noiseMaterial.SetFloat("_Persistence", persistence);
             noiseMaterial.SetVector("_Offset", offset);
-            
+
             TextureRenderer.DrawQuad(outputTexture, noiseMaterial);
-            
+
+            SetOutputValue("texture_out", outputTexture);
+            isExecuted = true;
+        }
+
+        private void CreateFallbackTexture()
+        {
+            if (outputTexture == null)
+            {
+                outputTexture = TextureRenderer.CreateRenderTexture();
+            }
+
+            // Fill with white as fallback
+            RenderTexture.active = outputTexture;
+            GL.Clear(true, true, Color.white);
+            RenderTexture.active = null;
+
             SetOutputValue("texture_out", outputTexture);
             isExecuted = true;
         }

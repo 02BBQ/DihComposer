@@ -76,13 +76,40 @@ namespace VFXComposer.UI
             {
                 BuildShapeNodeInspector(shapeNode);
             }
+            else if (node is ConstantColorNode constantColorNode)
+            {
+                BuildConstantColorNodeInspector(constantColorNode);
+            }
+            else if (node is BlendNode blendNode)
+            {
+                BuildBlendNodeInspector(blendNode);
+            }
+            else if (node is MultiplyNode multiplyNode)
+            {
+                BuildMultiplyNodeInspector(multiplyNode);
+            }
+            else if (node is AddNode addNode)
+            {
+                BuildAddNodeInspector(addNode);
+            }
+            else if (node is SubtractNode subtractNode)
+            {
+                BuildSubtractNodeInspector(subtractNode);
+            }
+            else if (node is PowerNode powerNode)
+            {
+                BuildPowerNodeInspector(powerNode);
+            }
             else if (node is OutputNode outputNode)
             {
                 BuildOutputNodeInspector(outputNode);
             }
-            
-            // 공통 버튼 (예: 노드 삭제) 추가
-            AddDeleteButton(node);
+
+            // 공통 버튼 (예: 노드 삭제) 추가 - OutputNode는 제외
+            if (!(node is OutputNode))
+            {
+                AddDeleteButton(node);
+            }
         }
 
         // --- 반복되는 필드 추가 로직을 간소화하는 제네릭 메서드 ---
@@ -184,6 +211,30 @@ namespace VFXComposer.UI
             AddColorField("Background Color", node.backgroundColor, newColor => node.backgroundColor = newColor);
         }
 
+        private void BuildConstantColorNodeInspector(ConstantColorNode node)
+        {
+            AddSection("🎨 Color");
+
+            AddColorField("Color", node.color, newColor => node.color = newColor);
+        }
+
+        private void BuildBlendNodeInspector(BlendNode node)
+        {
+            AddSection("🎨 Blend Settings");
+
+            // EnumField (Blend Mode)
+            AddEnumField("Blend Mode", node.blendMode, newValue => node.blendMode = newValue);
+
+            // FloatField (Opacity)
+            AddField<FloatField, float>("Opacity", node.opacity, newValue => node.opacity = Mathf.Clamp01(newValue));
+
+            AddSection("ℹ️ Info");
+
+            var infoLabel = new Label("Connect two textures:\n• Base: Bottom layer\n• Blend: Top layer");
+            infoLabel.AddToClassList("inspector__info");
+            propertiesContainer.Add(infoLabel);
+        }
+
         private void BuildOutputNodeInspector(OutputNode node)
         {
             AddSection("🖥️ Output Node");
@@ -192,7 +243,59 @@ namespace VFXComposer.UI
             infoLabel.AddToClassList("inspector__info");
             propertiesContainer.Add(infoLabel);
         }
-        
+
+        private void BuildMultiplyNodeInspector(MultiplyNode node)
+        {
+            AddSection("✖️ Multiply");
+
+            AddField<FloatField, float>("Multiplier", node.multiplier, newValue => node.multiplier = newValue);
+
+            AddSection("ℹ️ Info");
+
+            var infoLabel = new Label("Multiplies inputs:\n• A * B (both textures)\n• A * value (texture only)\n• value (no inputs)");
+            infoLabel.AddToClassList("inspector__info");
+            propertiesContainer.Add(infoLabel);
+        }
+
+        private void BuildAddNodeInspector(AddNode node)
+        {
+            AddSection("➕ Add");
+
+            AddField<FloatField, float>("Add Value", node.addValue, newValue => node.addValue = newValue);
+
+            AddSection("ℹ️ Info");
+
+            var infoLabel = new Label("Adds inputs:\n• A + B (both textures)\n• A + value (texture only)\n• value (no inputs)");
+            infoLabel.AddToClassList("inspector__info");
+            propertiesContainer.Add(infoLabel);
+        }
+
+        private void BuildSubtractNodeInspector(SubtractNode node)
+        {
+            AddSection("➖ Subtract");
+
+            AddField<FloatField, float>("Subtract Value", node.subtractValue, newValue => node.subtractValue = newValue);
+
+            AddSection("ℹ️ Info");
+
+            var infoLabel = new Label("Subtracts inputs:\n• A - B (both textures)\n• A - value (texture only)\n• value (no inputs)");
+            infoLabel.AddToClassList("inspector__info");
+            propertiesContainer.Add(infoLabel);
+        }
+
+        private void BuildPowerNodeInspector(PowerNode node)
+        {
+            AddSection("⚡ Power");
+
+            AddField<FloatField, float>("Exponent", node.exponent, newValue => node.exponent = newValue);
+
+            AddSection("ℹ️ Info");
+
+            var infoLabel = new Label("Power operation:\n• A ^ B (both textures)\n• A ^ exp (texture only)\n• exp (no inputs)");
+            infoLabel.AddToClassList("inspector__info");
+            propertiesContainer.Add(infoLabel);
+        }
+
         // --- 유틸리티 메서드 개선 및 추가 ---
 
         private void AddSection(string title)

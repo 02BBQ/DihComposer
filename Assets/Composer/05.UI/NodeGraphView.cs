@@ -196,6 +196,13 @@ namespace VFXComposer.UI
             if (node == null || graph == null) return;
             if (!nodeViews.ContainsKey(node)) return;
 
+            // OutputNode는 삭제 불가능
+            if (node is OutputNode)
+            {
+                Debug.LogWarning("Cannot delete OutputNode!");
+                return;
+            }
+
             var nodeView = nodeViews[node];
 
             // Remove from dictionary
