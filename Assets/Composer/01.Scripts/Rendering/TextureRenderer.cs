@@ -26,7 +26,7 @@ namespace VFXComposer.Rendering
             
             GL.Clear(true, true, color);
             
-            RenderTexture.active = previous;
+            RenderTexture.active = previous; 
         }
         
         public static void BlitWithMaterial(RenderTexture source, RenderTexture dest, Material material)

@@ -42,22 +42,18 @@ public class ComposerWindow : MonoBehaviour
             rootVisualElement.styleSheets.Add(inspectorStyleSheet);
         }
 
-        // Create horizontal container for graph view and inspector
         var horizontalContainer = new VisualElement();
         horizontalContainer.style.flexDirection = FlexDirection.Row;
         horizontalContainer.style.flexGrow = 1;
         rootVisualElement.Add(horizontalContainer);
 
-        // Graph view (left side, takes remaining space)
         graphView = new NodeGraphView();
         graphView.style.flexGrow = 1;
         horizontalContainer.Add(graphView);
 
-        // Inspector (right side, fixed width)
         var inspector = new NodeInspector(graphView);
         horizontalContainer.Add(inspector);
 
-        // Connect inspector to graph view
         graphView.SetInspector(inspector);
     }
     

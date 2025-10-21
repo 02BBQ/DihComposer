@@ -74,24 +74,11 @@ namespace VFXComposer.Core
         
         /// <summary>
         /// 데이터 타입에 따른 연결선 색상 반환
+        /// DataTypeColorTable을 사용하여 중앙 집중식 색상 관리
         /// </summary>
         public static Color GetColorForDataType(DataType dataType)
         {
-            switch (dataType)
-            {
-                case DataType.Texture:
-                    return Color.white; // 하얀색
-                case DataType.Float:
-                    return new Color(0.3f, 0.8f, 0.3f); // 녹색
-                case DataType.Vector2:
-                    return new Color(1f, 0.8f, 0.3f); // 주황색
-                case DataType.Vector3:
-                    return new Color(1f, 0.5f, 0.3f); // 진한 주황색
-                case DataType.Color:
-                    return new Color(1f, 1f, 0.3f); // 노란색
-                default:
-                    return Color.white;
-            }
+            return DataTypeColorTable.GetColor(dataType);
         }
         
         /// <summary>

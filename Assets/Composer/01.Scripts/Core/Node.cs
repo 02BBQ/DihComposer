@@ -70,20 +70,18 @@ namespace VFXComposer.Core
             var slot = inputSlots.Find(s => s.id == slotId);
             if (slot == null || slot.connectedSlot == null)
             {
-                return default(T);
+                return default;
             }
             
-            // 연결된 노드를 먼저 실행
             slot.connectedSlot.owner.Execute();
             
-            // 연결된 노드의 출력값 가져오기
             var outputNode = slot.connectedSlot.owner;
             if (outputNode.cachedOutputs.ContainsKey(slot.connectedSlot.id))
             {
                 return (T)outputNode.cachedOutputs[slot.connectedSlot.id];
             }
             
-            return default(T);
+            return default;
         }
         
         /// <summary>
