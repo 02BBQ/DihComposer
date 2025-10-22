@@ -13,16 +13,34 @@ namespace VFXComposer.UI
         
         private static List<NodeMenuItem> nodeTypes = new List<NodeMenuItem>
         {
+            // Generators
             new NodeMenuItem("Generator/Constant Color", () => new ConstantColorNode()),
             new NodeMenuItem("Generator/Gradient", () => new GradientNode()),
             new NodeMenuItem("Generator/Shape", () => new ShapeNode()),
             new NodeMenuItem("Generator/Noise", () => new NoiseNode()),
+
+            // Color Adjustments
             new NodeMenuItem("Color/Blend", () => new BlendNode()),
+            new NodeMenuItem("Color/Levels", () => new LevelsNode()),
+            new NodeMenuItem("Color/HSV Adjust", () => new HSVAdjustNode()),
+            new NodeMenuItem("Color/Invert", () => new InvertNode()),
+
+            // Effects
+            new NodeMenuItem("Effect/Blur", () => new BlurNode()),
+            new NodeMenuItem("Effect/Displace", () => new DisplaceNode()),
+
+            // Transform
+            new NodeMenuItem("Transform/Transform", () => new TransformNode()),
+
+            // Math
             new NodeMenuItem("Math/Add", () => new AddNode()),
             new NodeMenuItem("Math/Subtract", () => new SubtractNode()),
             new NodeMenuItem("Math/Multiply", () => new MultiplyNode()),
             new NodeMenuItem("Math/Power", () => new PowerNode()),
+
+            // Animation
             new NodeMenuItem("Animation/Time", () => new TimeNode()),
+
             // OutputNode는 자동으로 생성되므로 메뉴에서 제외
         };
         

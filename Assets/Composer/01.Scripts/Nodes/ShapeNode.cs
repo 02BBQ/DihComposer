@@ -5,10 +5,22 @@ namespace VFXComposer.Core
 {
     public class ShapeNode : Node
     {
+        [InspectorField("Shape Type", Order = 0, Section = "📐 Shape Properties")]
         public ShapeType shapeType = ShapeType.Circle;
+
+        [InspectorField("Size", Order = 1, Section = "📐 Shape Properties")]
+        [VFXComposer.Core.Range(0.1f, 1f)]
         public float size = 0.5f;
+
+        [InspectorField("Smoothness", Order = 2, Section = "📐 Shape Properties")]
+        [VFXComposer.Core.Range(0f, 0.1f)]
+        [InspectorInfo("Edge softness")]
         public float smoothness = 0.01f;
+
+        [InspectorField("Fill Color", Order = 3, Section = "🎨 Colors")]
         public Color fillColor = Color.white;
+
+        [InspectorField("Background Color", Order = 4, Section = "🎨 Colors")]
         public Color backgroundColor = Color.black;
         
         private RenderTexture outputTexture;

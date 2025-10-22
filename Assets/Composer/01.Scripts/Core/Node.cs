@@ -63,7 +63,7 @@ namespace VFXComposer.Core
         }
         
         /// <summary>
-        /// 입력 슬롯에서 값 가져오기
+        /// 입력 슬롯에서 값 가져오기 (타입 변환 지원)
         /// </summary>
         protected T GetInputValue<T>(string slotId)
         {
@@ -72,16 +72,87 @@ namespace VFXComposer.Core
             {
                 return default;
             }
-            
+
             slot.connectedSlot.owner.Execute();
-            
+
             var outputNode = slot.connectedSlot.owner;
-            if (outputNode.cachedOutputs.ContainsKey(slot.connectedSlot.id))
+            if (!outputNode.cachedOutputs.ContainsKey(slot.connectedSlot.id))
             {
-                return (T)outputNode.cachedOutputs[slot.connectedSlot.id];
+                return default;
             }
-            
+
+            object value = outputNode.cachedOutputs[slot.connectedSlot.id];
+
+            // 타입이 일치하면 그대로 반환
+            if (value is T directValue)
+            {
+                return directValue;
+            }
+
+            // 타입 변환 시도
+            return ConvertValue<T>(value, slot.dataType, slot.connectedSlot.dataType);
+        }
+
+        /// <summary>
+        /// 타입 간 자동 변환 처리
+        /// </summary>
+        private T ConvertValue<T>(object value, DataType targetType, DataType sourceType)
+        {
+            // Texture → Color 변환
+            if (typeof(T) == typeof(Color) && value is RenderTexture rt)
+            {
+                return (T)(object)SampleTextureCenter(rt);
+            }
+
+            // Color → Texture 변환
+            if (typeof(T) == typeof(RenderTexture) && value is Color color)
+            {
+                return (T)(object)CreateSolidColorTexture(color);
+            }
+
+            // 변환 실패 시 기본값 반환
+            Debug.LogWarning($"Type conversion failed: {sourceType} → {targetType}");
             return default;
+        }
+
+        /// <summary>
+        /// RenderTexture 중앙 픽셀 샘플링 (Texture → Color 변환)
+        /// </summary>
+        private Color SampleTextureCenter(RenderTexture rt)
+        {
+            if (rt == null) return Color.black;
+
+            // GPU → CPU 읽기 (성능 주의)
+            RenderTexture.active = rt;
+            Texture2D temp = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            temp.ReadPixels(new Rect(rt.width / 2, rt.height / 2, 1, 1), 0, 0);
+            temp.Apply();
+            RenderTexture.active = null;
+
+            Color result = temp.GetPixel(0, 0);
+            Object.Destroy(temp);
+
+            return result;
+        }
+
+        /// <summary>
+        /// 단색 RenderTexture 생성 (Color → Texture 변환)
+        /// </summary>
+        private RenderTexture CreateSolidColorTexture(Color color, int size = 256)
+        {
+            RenderTexture rt = new RenderTexture(size, size, 0, RenderTextureFormat.ARGB32);
+            rt.Create();
+
+            // Material로 단색 채우기
+            Material fillMat = new Material(Shader.Find("Hidden/Internal-Colored"));
+            RenderTexture previousRT = RenderTexture.active;
+            RenderTexture.active = rt;
+
+            GL.Clear(true, true, color);
+
+            RenderTexture.active = previousRT;
+
+            return rt;
         }
         
         /// <summary>

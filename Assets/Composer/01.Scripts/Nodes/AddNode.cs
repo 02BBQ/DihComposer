@@ -5,6 +5,9 @@ namespace VFXComposer.Core
 {
     public class AddNode : Node
     {
+        [InspectorField("Add Value", Order = 0, Section = "➕ Add")]
+        [VFXComposer.Core.Range(-2f, 2f)]
+        [InspectorInfo("Adds inputs:\n• A + B (both textures)\n• A + value (texture only)\n• value (no inputs)")]
         public float addValue = 0.0f;
 
         private RenderTexture outputTexture;

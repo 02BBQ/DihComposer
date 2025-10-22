@@ -5,6 +5,9 @@ namespace VFXComposer.Core
 {
     public class MultiplyNode : Node
     {
+        [InspectorField("Multiplier", Order = 0, Section = "✖️ Multiply")]
+        [VFXComposer.Core.Range(0f, 5f)]
+        [InspectorInfo("Multiplies inputs:\n• A * B (both textures)\n• A * value (texture only)\n• value (no inputs)")]
         public float multiplier = 1.0f;
 
         private RenderTexture outputTexture;

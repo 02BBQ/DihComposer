@@ -52,6 +52,8 @@ namespace VFXComposer.UI
         {
             if (node.cachedOutputs.Count > 0)
             {
+                // 우선순위: Texture > Color
+                // 먼저 Texture를 찾음
                 foreach (var output in node.cachedOutputs.Values)
                 {
                     if (output is RenderTexture rt)
@@ -59,7 +61,12 @@ namespace VFXComposer.UI
                         previewImage.image = rt;
                         return;
                     }
-                    else if (output is Color col)
+                }
+
+                // Texture가 없으면 Color 찾음
+                foreach (var output in node.cachedOutputs.Values)
+                {
+                    if (output is Color col)
                     {
                         var tex = new Texture2D(1, 1);
                         tex.SetPixel(0, 0, col);

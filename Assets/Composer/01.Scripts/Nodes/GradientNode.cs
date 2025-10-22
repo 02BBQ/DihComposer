@@ -5,9 +5,17 @@ namespace VFXComposer.Core
 {
     public class GradientNode : Node
     {
+        [InspectorField("Color A", Order = 0, Section = "🎨 Gradient Colors")]
         public Color colorA = Color.black;
+
+        [InspectorField("Color B", Order = 1, Section = "🎨 Gradient Colors")]
         public Color colorB = Color.white;
+
+        [InspectorField("Gradient Type", Order = 2, Section = "⚙️ Settings")]
         public GradientType gradientType = GradientType.Linear;
+
+        [InspectorField("Angle (°)", Order = 3, Section = "⚙️ Settings")]
+        [Range(0f, 360f)]
         public float angle = 0f;
         
         private RenderTexture outputTexture;

@@ -5,10 +5,22 @@ namespace VFXComposer.Core
 {
     public class NoiseNode : Node
     {
+        [InspectorField("Noise Type", Order = 0, Section = "🌀 Noise Properties")]
         public NoiseType noiseType = NoiseType.Perlin;
+
+        [InspectorField("Scale", Order = 1, Section = "🌀 Noise Properties")]
+        [Range(0.1f, 20f)]
         public float scale = 5f;
+
+        [InspectorField("Octaves", Order = 2, Section = "🌀 Noise Properties")]
+        [Range(1, 8)]
         public int octaves = 4;
+
+        [InspectorField("Persistence", Order = 3, Section = "🌀 Noise Properties")]
+        [Range(0f, 1f)]
         public float persistence = 0.5f;
+
+        [InspectorField("Offset", Order = 4, Section = "🌀 Noise Properties")]
         public Vector2 offset = Vector2.zero;
         
         private RenderTexture outputTexture;

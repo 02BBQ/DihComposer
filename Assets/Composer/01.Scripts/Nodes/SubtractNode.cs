@@ -5,6 +5,9 @@ namespace VFXComposer.Core
 {
     public class SubtractNode : Node
     {
+        [InspectorField("Subtract Value", Order = 0, Section = "➖ Subtract")]
+        [VFXComposer.Core.Range(-2f, 2f)]
+        [InspectorInfo("Subtracts inputs:\n• A - B (both textures)\n• A - value (texture only)\n• value (no inputs)")]
         public float subtractValue = 0.0f;
 
         private RenderTexture outputTexture;
