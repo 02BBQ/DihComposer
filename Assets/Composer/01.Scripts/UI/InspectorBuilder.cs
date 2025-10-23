@@ -205,63 +205,51 @@ namespace VFXComposer.UI
 
         private void AddFloatField(InspectorFieldInfo fieldInfo, float currentValue)
         {
-            if (fieldInfo.RangeAttr != null)
+            var floatField = new FloatField(fieldInfo.Label);
+            floatField.value = currentValue;
+            floatField.formatString = "F3";
+            floatField.RegisterValueChangedCallback(evt =>
             {
-                // Slider 사용
-                var slider = new Slider(fieldInfo.Label, fieldInfo.RangeAttr.Min, fieldInfo.RangeAttr.Max);
-                slider.value = currentValue;
-                slider.RegisterValueChangedCallback(evt =>
+                // Range 속성이 있으면 Clamp 적용
+                float value = evt.newValue;
+                if (fieldInfo.RangeAttr != null)
                 {
-                    SetValue(fieldInfo.MemberInfo, evt.newValue);
-                    onValueChanged?.Invoke();
-                });
-                slider.AddToClassList("inspector__field");
-                container.Add(slider);
-            }
-            else
-            {
-                // 일반 FloatField
-                var floatField = new FloatField(fieldInfo.Label);
-                floatField.value = currentValue;
-                floatField.formatString = "F3";
-                floatField.RegisterValueChangedCallback(evt =>
-                {
-                    SetValue(fieldInfo.MemberInfo, evt.newValue);
-                    onValueChanged?.Invoke();
-                });
-                floatField.AddToClassList("inspector__field");
-                container.Add(floatField);
-            }
+                    value = Mathf.Clamp(value, fieldInfo.RangeAttr.Min, fieldInfo.RangeAttr.Max);
+                    if (value != evt.newValue)
+                    {
+                        floatField.SetValueWithoutNotify(value);
+                    }
+                }
+
+                SetValue(fieldInfo.MemberInfo, value);
+                onValueChanged?.Invoke();
+            });
+            floatField.AddToClassList("inspector__field");
+            container.Add(floatField);
         }
 
         private void AddIntField(InspectorFieldInfo fieldInfo, int currentValue)
         {
-            if (fieldInfo.RangeAttr != null)
+            var intField = new IntegerField(fieldInfo.Label);
+            intField.value = currentValue;
+            intField.RegisterValueChangedCallback(evt =>
             {
-                // SliderInt 사용
-                var slider = new SliderInt(fieldInfo.Label, (int)fieldInfo.RangeAttr.Min, (int)fieldInfo.RangeAttr.Max);
-                slider.value = currentValue;
-                slider.RegisterValueChangedCallback(evt =>
+                // Range 속성이 있으면 Clamp 적용
+                int value = evt.newValue;
+                if (fieldInfo.RangeAttr != null)
                 {
-                    SetValue(fieldInfo.MemberInfo, evt.newValue);
-                    onValueChanged?.Invoke();
-                });
-                slider.AddToClassList("inspector__field");
-                container.Add(slider);
-            }
-            else
-            {
-                // 일반 IntegerField
-                var intField = new IntegerField(fieldInfo.Label);
-                intField.value = currentValue;
-                intField.RegisterValueChangedCallback(evt =>
-                {
-                    SetValue(fieldInfo.MemberInfo, evt.newValue);
-                    onValueChanged?.Invoke();
-                });
-                intField.AddToClassList("inspector__field");
-                container.Add(intField);
-            }
+                    value = Mathf.Clamp(value, (int)fieldInfo.RangeAttr.Min, (int)fieldInfo.RangeAttr.Max);
+                    if (value != evt.newValue)
+                    {
+                        intField.SetValueWithoutNotify(value);
+                    }
+                }
+
+                SetValue(fieldInfo.MemberInfo, value);
+                onValueChanged?.Invoke();
+            });
+            intField.AddToClassList("inspector__field");
+            container.Add(intField);
         }
 
         private void AddBoolField(InspectorFieldInfo fieldInfo, bool currentValue)

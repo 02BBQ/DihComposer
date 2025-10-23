@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 using VFXComposer.Core;
 
@@ -49,7 +50,8 @@ namespace VFXComposer.UI
         {
             if (!isDragging) return;
 
-            currentPosition = mousePosition;
+            // mousePosition은 panel 절대 좌표이므로 NodeGraphView 로컬 좌표로 변환
+            currentPosition = graphView.WorldToLocal(mousePosition);
             dragLineLayer.MarkDirtyRepaint();
         }
         

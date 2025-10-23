@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using VFXComposer.Core;
+using System.Collections.Generic;
 
 namespace VFXComposer.UI
 {
@@ -16,6 +17,9 @@ namespace VFXComposer.UI
         private bool isDragging = false;
         private bool isSlotDragging = false;
         private bool isSelected = false;
+
+        // 슬롯 element 캐싱 (빠른 조회용)
+        private Dictionary<NodeSlot, VisualElement> slotElements = new Dictionary<NodeSlot, VisualElement>();
 
         public bool IsSelected => isSelected;
         
@@ -114,6 +118,9 @@ namespace VFXComposer.UI
 
             port.RegisterCallback<MouseDownEvent>(evt => OnSlotMouseDown(evt, slot));
             port.RegisterCallback<MouseUpEvent>(evt => OnSlotMouseUp(evt, slot));
+
+            // 슬롯 element 캐싱
+            slotElements[slot] = port;
 
             var label = new Label(slot.displayName);
             label.AddToClassList("slot__label");
@@ -258,29 +265,53 @@ namespace VFXComposer.UI
             return $"Delete {node.nodeName}";
         }
         
+        /// <summary>
+        /// 슬롯의 port element를 반환합니다
+        /// </summary>
+        public VisualElement GetSlotElement(NodeSlot slot)
+        {
+            if (slotElements.TryGetValue(slot, out var element))
+            {
+                return element;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 슬롯의 중심 위치를 반환합니다 (NodeGraphView 기준 좌표)
+        /// </summary>
         public Vector2 GetSlotPosition(NodeSlot slot)
         {
-            bool isOutput = slot.slotType == SlotType.Output;
-            int slotIndex = isOutput ?
-                node.outputSlots.IndexOf(slot) :
-                node.inputSlots.IndexOf(slot);
+            var portElement = GetSlotElement(slot);
+            if (portElement == null)
+            {
+                // Fallback: 수동 계산
+                bool isOutput = slot.slotType == SlotType.Output;
+                int slotIndex = isOutput ?
+                    node.outputSlots.IndexOf(slot) :
+                    node.inputSlots.IndexOf(slot);
 
-            // Match CSS values from GridBackground.uss
-            float nodePadding = 8;        // .node padding
-            float headerHeight = 36;      // header padding + font + margin-bottom (약간 여유)
-            float previewHeight = 128;    // preview margin-top + height + margin-bottom
-            float slotMargin = 4;         // .slot-input/.slot-output margin
-            float portSize = 12;          // .slot__port height
+                float nodePadding = 8;
+                float headerHeight = 36;
+                float previewHeight = 128;
+                float slotMargin = 4;
+                float portSize = 12;
 
-            // Calculate slot center position
-            float slotHeight = portSize + (slotMargin * 2);
-            float yPos = nodePadding + headerHeight + previewHeight + (slotIndex * slotHeight) + portSize / 2;
+                float slotHeight = portSize + (slotMargin * 2);
+                float yPos = nodePadding + headerHeight + previewHeight + (slotIndex * slotHeight) + portSize / 2;
 
-            // X position - port는 노드 경계에 위치
-            float nodeWidth = 150;
-            float xPos = isOutput ? nodeWidth : 0;
+                float nodeWidth = 150;
+                float xPos = isOutput ? nodeWidth : 0;
 
-            return new Vector2(node.position.x + xPos, node.position.y + yPos);
+                return new Vector2(node.position.x + xPos, node.position.y + yPos);
+            }
+
+            // 실제 렌더링된 위치 사용 (더 정확함)
+            // worldBound는 NodeGraphView 기준의 절대 좌표
+            Rect portBound = portElement.worldBound;
+            Vector2 portCenter = portBound.center;
+
+            return portCenter;
         }
         
         private void OnMouseLeave(MouseLeaveEvent evt)
