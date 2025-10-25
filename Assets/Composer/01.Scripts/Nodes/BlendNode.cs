@@ -5,10 +5,10 @@ namespace VFXComposer.Core
 {
     public class BlendNode : Node
     {
-        [InspectorField("Blend Mode", Order = 0, Section = "🎨 Blend Settings")]
+        [InspectorField("Blend Mode", Order = 0, Section = "Blend Settings")]
         public BlendMode blendMode = BlendMode.Normal;
 
-        [InspectorField("Opacity", Order = 1, Section = "🎨 Blend Settings")]
+        [InspectorField("Opacity", Order = 1, Section = "Blend Settings")]
         [Range(0f, 1f)]
         [InspectorInfo("Connect two textures:\n• Base: Bottom layer\n• Blend: Top layer")]
         public float opacity = 1f;

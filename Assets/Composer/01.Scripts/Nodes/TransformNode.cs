@@ -8,24 +8,24 @@ namespace VFXComposer.Core
     /// </summary>
     public class TransformNode : Node
     {
-        [InspectorField("Offset X", Order = 0, Section = "📍 Position")]
+        [InspectorField("Offset X", Order = 0, Section = "Position")]
         [VFXComposer.Core.Range(-1f, 1f)]
         public float offsetX = 0f;
 
-        [InspectorField("Offset Y", Order = 1, Section = "📍 Position")]
+        [InspectorField("Offset Y", Order = 1, Section = "Position")]
         [VFXComposer.Core.Range(-1f, 1f)]
         public float offsetY = 0f;
 
-        [InspectorField("Rotation", Order = 2, Section = "🔄 Rotation")]
+        [InspectorField("Rotation", Order = 2, Section = "Rotation")]
         [VFXComposer.Core.Range(0f, 360f)]
         [InspectorInfo("Rotation in degrees")]
         public float rotation = 0f;
 
-        [InspectorField("Scale X", Order = 3, Section = "📏 Scale")]
+        [InspectorField("Scale X", Order = 3, Section = "Scale")]
         [VFXComposer.Core.Range(0.1f, 5f)]
         public float scaleX = 1f;
 
-        [InspectorField("Scale Y", Order = 4, Section = "📏 Scale")]
+        [InspectorField("Scale Y", Order = 4, Section = "Scale")]
         [VFXComposer.Core.Range(0.1f, 5f)]
         public float scaleY = 1f;
 

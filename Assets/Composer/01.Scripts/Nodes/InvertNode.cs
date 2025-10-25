@@ -8,7 +8,7 @@ namespace VFXComposer.Core
     /// </summary>
     public class InvertNode : Node
     {
-        [InspectorField("Invert Amount", Order = 0, Section = "🔄 Invert")]
+        [InspectorField("Invert Amount", Order = 0, Section = "Invert")]
         [VFXComposer.Core.Range(0f, 1f)]
         [InspectorInfo("0 = original, 1 = fully inverted")]
         public float invertAmount = 1f;

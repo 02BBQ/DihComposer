@@ -8,24 +8,24 @@ namespace VFXComposer.Core
     /// </summary>
     public class LevelsNode : Node
     {
-        [InspectorField("Input Black", Order = 0, Section = "📥 Input Levels")]
+        [InspectorField("Input Black", Order = 0, Section = "Input Levels")]
         [VFXComposer.Core.Range(0f, 1f)]
         public float inputBlack = 0f;
 
-        [InspectorField("Input White", Order = 1, Section = "📥 Input Levels")]
+        [InspectorField("Input White", Order = 1, Section = "Input Levels")]
         [VFXComposer.Core.Range(0f, 1f)]
         public float inputWhite = 1f;
 
-        [InspectorField("Gamma", Order = 2, Section = "⚡ Midtones")]
+        [InspectorField("Gamma", Order = 2, Section = "Midtones")]
         [VFXComposer.Core.Range(0.1f, 10f)]
         [InspectorInfo("Adjust midtone brightness")]
         public float gamma = 1f;
 
-        [InspectorField("Output Black", Order = 3, Section = "📤 Output Levels")]
+        [InspectorField("Output Black", Order = 3, Section = "Output Levels")]
         [VFXComposer.Core.Range(0f, 1f)]
         public float outputBlack = 0f;
 
-        [InspectorField("Output White", Order = 4, Section = "📤 Output Levels")]
+        [InspectorField("Output White", Order = 4, Section = "Output Levels")]
         [VFXComposer.Core.Range(0f, 1f)]
         public float outputWhite = 1f;
 

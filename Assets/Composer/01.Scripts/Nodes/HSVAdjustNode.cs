@@ -8,17 +8,17 @@ namespace VFXComposer.Core
     /// </summary>
     public class HSVAdjustNode : Node
     {
-        [InspectorField("Hue Shift", Order = 0, Section = "🎨 HSV Adjust")]
+        [InspectorField("Hue Shift", Order = 0, Section = "HSV Adjust")]
         [VFXComposer.Core.Range(-180f, 180f)]
         [InspectorInfo("Rotate hue (color wheel)")]
         public float hueShift = 0f;
 
-        [InspectorField("Saturation", Order = 1, Section = "🎨 HSV Adjust")]
+        [InspectorField("Saturation", Order = 1, Section = "HSV Adjust")]
         [VFXComposer.Core.Range(0f, 2f)]
         [InspectorInfo("0 = grayscale, 1 = original, 2 = doubled")]
         public float saturation = 1f;
 
-        [InspectorField("Value (Brightness)", Order = 2, Section = "🎨 HSV Adjust")]
+        [InspectorField("Value (Brightness)", Order = 2, Section = "HSV Adjust")]
         [VFXComposer.Core.Range(0f, 2f)]
         [InspectorInfo("Overall brightness multiplier")]
         public float value = 1f;

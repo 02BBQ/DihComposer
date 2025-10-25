@@ -5,7 +5,7 @@ namespace VFXComposer.Core
 {
     public class PowerNode : Node
     {
-        [InspectorField("Exponent", Order = 0, Section = "⚡ Power")]
+        [InspectorField("Exponent", Order = 0, Section = "Power")]
         [VFXComposer.Core.Range(0.1f, 10f)]
         [InspectorInfo("Power operation:\n• A ^ B (both textures)\n• A ^ exp (texture only)\n• exp (no inputs)")]
         public float exponent = 2.0f;

@@ -8,12 +8,12 @@ namespace VFXComposer.Core
     /// </summary>
     public class BlurNode : Node
     {
-        [InspectorField("Blur Size", Order = 0, Section = "🌫️ Blur")]
+        [InspectorField("Blur Size", Order = 0, Section = "Blur")]
         [VFXComposer.Core.Range(0f, 10f)]
         [InspectorInfo("Size of blur effect")]
         public float blurSize = 1f;
 
-        [InspectorField("Iterations", Order = 1, Section = "🌫️ Blur")]
+        [InspectorField("Iterations", Order = 1, Section = "Blur")]
         [VFXComposer.Core.Range(1, 5)]
         [InspectorInfo("More iterations = smoother blur (slower)")]
         public int iterations = 2;
