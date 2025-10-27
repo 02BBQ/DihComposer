@@ -9,7 +9,7 @@ namespace VFXComposer.Core
         public ShapeType shapeType = ShapeType.Circle;
 
         [InspectorField("Size", Order = 1, Section = "Shape Properties")]
-        [VFXComposer.Core.Range(0.1f, 1f)]
+        [VFXComposer.Core.Range(0f, 1f)]
         public float size = 0.5f;
 
         [InspectorField("Smoothness", Order = 2, Section = "Shape Properties")]

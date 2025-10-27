@@ -55,7 +55,7 @@ namespace VFXComposer.UI
             dragLineLayer.MarkDirtyRepaint();
         }
         
-        public void EndDrag(NodeSlot endSlot, NodeView endNodeView)
+        public void EndDrag(NodeSlot endSlot)
         {
             if (!isDragging) return;
             

@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using VFXComposer.Core;
+using VFXComposer.Core.Animation;
 using System; // System.Action을 위해 추가
 
 namespace VFXComposer.UI
@@ -11,11 +12,13 @@ namespace VFXComposer.UI
         private VisualElement propertiesContainer;
         private Label titleLabel;
         private NodeGraphView graphView;
+        private TimelineController timelineController;
         private Image previewImage;
 
-        public NodeInspector(NodeGraphView view)
+        public NodeInspector(NodeGraphView view, TimelineController timeline)
         {
             graphView = view;
+            timelineController = timeline;
 
             // 전체 인스펙터 스타일 클래스
             AddToClassList("node-inspector");
@@ -38,6 +41,22 @@ namespace VFXComposer.UI
 
             // Schedule preview updates
             schedule.Execute(UpdatePreview).Every(100);
+
+            // 타임라인 시간 변경 시 Inspector UI 업데이트
+            if (timelineController != null)
+            {
+                timelineController.OnTimeChanged += OnTimelineChanged;
+            }
+        }
+
+        private void OnTimelineChanged(float time)
+        {
+            // 현재 선택된 노드가 있으면 UI 업데이트
+            if (currentNode != null)
+            {
+                // Inspector 값 갱신 (애니메이션 값 반영)
+                ShowNodeProperties(currentNode);
+            }
         }
 
         public void ShowNodeProperties(Node node)
@@ -63,8 +82,8 @@ namespace VFXComposer.UI
             previewImage.scaleMode = ScaleMode.ScaleToFit;
             propertiesContainer.Add(previewImage);
 
-            // 🎉 Attribute 기반 자동 Inspector 생성
-            var builder = new InspectorBuilder(propertiesContainer, node, () => ExecuteNode(node));
+            // 🎉 Attribute 기반 자동 Inspector 생성 (키프레임 지원)
+            var builder = new InspectorBuilder(propertiesContainer, node, () => ExecuteNode(node), timelineController);
             builder.Build();
 
             // OutputNode의 경우 추가 정보 표시

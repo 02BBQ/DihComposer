@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
 using VFXComposer.Core;
+using VFXComposer.Core.Animation;
 using UnityEditor.UIElements;
 
 namespace VFXComposer.UI
@@ -17,15 +18,17 @@ namespace VFXComposer.UI
         private VisualElement container;
         private Node targetNode;
         private Action onValueChanged;
+        private TimelineController timelineController;
 
         // 성능 최적화를 위한 Type별 캐싱
         private static Dictionary<Type, List<InspectorFieldInfo>> fieldCache = new Dictionary<Type, List<InspectorFieldInfo>>();
 
-        public InspectorBuilder(VisualElement container, Node node, Action onValueChanged)
+        public InspectorBuilder(VisualElement container, Node node, Action onValueChanged, TimelineController timeline = null)
         {
             this.container = container;
             this.targetNode = node;
             this.onValueChanged = onValueChanged;
+            this.timelineController = timeline;
         }
 
         /// <summary>
@@ -205,9 +208,15 @@ namespace VFXComposer.UI
 
         private void AddFloatField(InspectorFieldInfo fieldInfo, float currentValue)
         {
+            // 필드와 키프레임 버튼을 담을 컨테이너
+            var fieldContainer = new VisualElement();
+            fieldContainer.style.flexDirection = FlexDirection.Row;
+            fieldContainer.AddToClassList("inspector__field-container");
+
             var floatField = new FloatField(fieldInfo.Label);
             floatField.value = currentValue;
             floatField.formatString = "F3";
+            floatField.style.flexGrow = 1;
             floatField.RegisterValueChangedCallback(evt =>
             {
                 // Range 속성이 있으면 Clamp 적용
@@ -225,13 +234,27 @@ namespace VFXComposer.UI
                 onValueChanged?.Invoke();
             });
             floatField.AddToClassList("inspector__field");
-            container.Add(floatField);
+            fieldContainer.Add(floatField);
+
+            // 키프레임 버튼 추가 (타임라인이 있을 때만)
+            if (timelineController != null)
+            {
+                var keyframeButton = CreateKeyframeButton(fieldInfo);
+                fieldContainer.Add(keyframeButton);
+            }
+
+            container.Add(fieldContainer);
         }
 
         private void AddIntField(InspectorFieldInfo fieldInfo, int currentValue)
         {
+            var fieldContainer = new VisualElement();
+            fieldContainer.style.flexDirection = FlexDirection.Row;
+            fieldContainer.AddToClassList("inspector__field-container");
+
             var intField = new IntegerField(fieldInfo.Label);
             intField.value = currentValue;
+            intField.style.flexGrow = 1;
             intField.RegisterValueChangedCallback(evt =>
             {
                 // Range 속성이 있으면 Clamp 적용
@@ -249,7 +272,15 @@ namespace VFXComposer.UI
                 onValueChanged?.Invoke();
             });
             intField.AddToClassList("inspector__field");
-            container.Add(intField);
+            fieldContainer.Add(intField);
+
+            if (timelineController != null)
+            {
+                var keyframeButton = CreateKeyframeButton(fieldInfo);
+                fieldContainer.Add(keyframeButton);
+            }
+
+            container.Add(fieldContainer);
         }
 
         private void AddBoolField(InspectorFieldInfo fieldInfo, bool currentValue)
@@ -267,42 +298,80 @@ namespace VFXComposer.UI
 
         private void AddColorField(InspectorFieldInfo fieldInfo, Color currentValue)
         {
-            // 기존 AddColorField 로직 재사용 가능하도록 간단한 버전
+            var fieldContainer = new VisualElement();
+            fieldContainer.style.flexDirection = FlexDirection.Row;
+            fieldContainer.AddToClassList("inspector__field-container");
+
             var colorField = new ColorField(fieldInfo.Label);
             colorField.value = currentValue;
+            colorField.style.flexGrow = 1;
             colorField.RegisterValueChangedCallback(evt =>
             {
                 SetValue(fieldInfo.MemberInfo, evt.newValue);
                 onValueChanged?.Invoke();
             });
             colorField.AddToClassList("inspector__field");
-            container.Add(colorField);
+            fieldContainer.Add(colorField);
+
+            if (timelineController != null)
+            {
+                var keyframeButton = CreateKeyframeButton(fieldInfo);
+                fieldContainer.Add(keyframeButton);
+            }
+
+            container.Add(fieldContainer);
         }
 
         private void AddVector2Field(InspectorFieldInfo fieldInfo, Vector2 currentValue)
         {
+            var fieldContainer = new VisualElement();
+            fieldContainer.style.flexDirection = FlexDirection.Row;
+            fieldContainer.AddToClassList("inspector__field-container");
+
             var vec2Field = new Vector2Field(fieldInfo.Label);
             vec2Field.value = currentValue;
+            vec2Field.style.flexGrow = 1;
             vec2Field.RegisterValueChangedCallback(evt =>
             {
                 SetValue(fieldInfo.MemberInfo, evt.newValue);
                 onValueChanged?.Invoke();
             });
             vec2Field.AddToClassList("inspector__field");
-            container.Add(vec2Field);
+            fieldContainer.Add(vec2Field);
+
+            if (timelineController != null)
+            {
+                var keyframeButton = CreateKeyframeButton(fieldInfo);
+                fieldContainer.Add(keyframeButton);
+            }
+
+            container.Add(fieldContainer);
         }
 
         private void AddVector3Field(InspectorFieldInfo fieldInfo, Vector3 currentValue)
         {
+            var fieldContainer = new VisualElement();
+            fieldContainer.style.flexDirection = FlexDirection.Row;
+            fieldContainer.AddToClassList("inspector__field-container");
+
             var vec3Field = new Vector3Field(fieldInfo.Label);
             vec3Field.value = currentValue;
+            vec3Field.style.flexGrow = 1;
             vec3Field.RegisterValueChangedCallback(evt =>
             {
                 SetValue(fieldInfo.MemberInfo, evt.newValue);
                 onValueChanged?.Invoke();
             });
             vec3Field.AddToClassList("inspector__field");
-            container.Add(vec3Field);
+            fieldContainer.Add(vec3Field);
+
+            if (timelineController != null)
+            {
+                var keyframeButton = CreateKeyframeButton(fieldInfo);
+                fieldContainer.Add(keyframeButton);
+            }
+
+            container.Add(fieldContainer);
         }
 
         private void AddStringField(InspectorFieldInfo fieldInfo, string currentValue)
@@ -323,6 +392,80 @@ namespace VFXComposer.UI
             var infoLabel = new Label(text);
             infoLabel.AddToClassList("inspector__info");
             container.Add(infoLabel);
+        }
+
+        /// <summary>
+        /// 키프레임 버튼 생성
+        /// </summary>
+        private Button CreateKeyframeButton(InspectorFieldInfo fieldInfo)
+        {
+            var button = new Button();
+            button.text = "◆";
+            button.style.width = 32;
+            button.style.marginLeft = 4;
+
+            // 초기 상태 설정
+            UpdateKeyframeButtonState(button, fieldInfo);
+
+            // 클릭 이벤트
+            button.clicked += () =>
+            {
+                string propertyName = fieldInfo.MemberInfo.Name;
+                object currentValue = GetValue(fieldInfo.MemberInfo);
+
+                // 현재 시간에 키프레임이 있는지 확인
+                if (timelineController.HasKeyframeAtCurrentTime(targetNode, propertyName))
+                {
+                    // 있으면 제거
+                    timelineController.RemoveKeyframe(targetNode, propertyName, timelineController.currentTime);
+                }
+                else
+                {
+                    // 없으면 추가
+                    timelineController.AddKeyframe(targetNode, propertyName, currentValue);
+                }
+
+                // 버튼 상태 업데이트
+                UpdateKeyframeButtonState(button, fieldInfo);
+            };
+
+            // 타임라인 변경 시 버튼 상태 업데이트
+            timelineController.OnTimeChanged += (time) => UpdateKeyframeButtonState(button, fieldInfo);
+            timelineController.OnKeyframeAdded += () => UpdateKeyframeButtonState(button, fieldInfo);
+            timelineController.OnKeyframeRemoved += () => UpdateKeyframeButtonState(button, fieldInfo);
+
+            return button;
+        }
+
+        /// <summary>
+        /// 키프레임 버튼 상태 업데이트
+        /// </summary>
+        private void UpdateKeyframeButtonState(Button button, InspectorFieldInfo fieldInfo)
+        {
+            string propertyName = fieldInfo.MemberInfo.Name;
+
+            // 애니메이션되어 있는지 확인
+            bool isAnimated = timelineController.IsPropertyAnimated(targetNode, propertyName);
+
+            // 현재 시간에 키프레임이 있는지 확인
+            bool hasKeyframe = timelineController.HasKeyframeAtCurrentTime(targetNode, propertyName);
+
+            // 색상 업데이트
+            if (hasKeyframe)
+            {
+                // 현재 시간에 키프레임이 있음 - 밝은 노란색
+                button.style.color = new Color(1f, 0.9f, 0.3f);
+            }
+            else if (isAnimated)
+            {
+                // 애니메이션되어 있지만 현재 시간에는 키프레임 없음 - 주황색
+                button.style.color = new Color(1f, 0.6f, 0.2f);
+            }
+            else
+            {
+                // 애니메이션 안됨 - 회색
+                button.style.color = new Color(0.5f, 0.5f, 0.5f);
+            }
         }
 
         // --- Reflection 헬퍼 메서드 ---

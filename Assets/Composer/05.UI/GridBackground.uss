@@ -125,3 +125,152 @@
     bottom: 0;
     pointer-events: none;
 }
+
+/* === Main Toolbar === */
+.main-toolbar {
+    flex-direction: row;
+    background-color: rgb(51, 51, 51);
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    border-bottom-width: 2px;
+    border-bottom-color: rgb(26, 26, 26);
+}
+
+/* Undo/Redo 버튼 컨테이너 */
+.undo-redo-container {
+    flex-direction: row;
+    align-items: center;
+    margin-right: 16px; 
+}
+
+/* 일반 툴바 버튼 스타일 (기본 스타일 추가) */
+.toolbar-button {
+    margin-right: 4px;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    min-height: 40px;
+
+    /* 기본 모양 추가 */
+    border-radius: 4px;
+    background-color: rgb(60, 60, 60);
+    border-color: rgb(80, 80, 80);
+    border-width: 1px;
+    color: rgb(200, 200, 200);
+    -unity-font-style: bold;
+    font-size: 14px;
+}
+
+.toolbar-button:hover {
+    background-color: rgb(70, 70, 70);
+    border-color: rgb(100, 150, 200);
+}
+
+/* 개별 Undo 버튼 */
+.toolbar-button--undo {
+    margin-right: 4px;
+}
+
+/* 개별 Redo 버튼 */
+.toolbar-button--redo {
+    margin-right: 16px;
+}
+
+/* 버튼 disabled 상태 */
+.toolbar-button:disabled {
+    color: rgb(100, 100, 100);
+    background-color: rgb(51, 51, 51);
+    border-color: rgb(51, 51, 51);
+    cursor: default; /* 비활성화 시 커서 변경 */
+}
+
+.toolbar-info {
+    flex-grow: 1;
+    -unity-text-align: middle-right;
+    color: rgb(179, 179, 179);
+    
+    /* 정보 레이블 스타일 추가 */
+    padding-right: 8px;
+    font-size: 12px;
+}
+
+/* === Timeline === */
+.timeline-view {
+    flex-direction: column;
+    background-color: rgb(38, 38, 38);
+    min-height: 200px;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+.timeline-toolbar {
+    flex-direction: row;
+    background-color: rgb(51, 51, 51);
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-left: 8px;
+    padding-right: 8px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(26, 26, 26);
+}
+
+.timeline-button {
+    margin-right: 4px;
+    width: 44px;
+    min-height: 36px;
+
+    border-radius: 4px;
+    background-color: rgb(60, 60, 60);
+    border-color: rgb(80, 80, 80);
+    border-width: 1px;
+    color: rgb(200, 200, 200);
+    -unity-font-style: bold;
+    font-size: 16px;
+}
+
+.timeline-button:hover {
+    background-color: rgb(80, 80, 80);
+    border-color: rgb(100, 150, 200);
+}
+
+.timeline-button--stop {
+    margin-right: 16px;
+}
+
+.timeline-button--next {
+    margin-right: 16px;
+}
+
+.timeline-time-label {
+    -unity-text-align: middle-left;
+    color: rgb(255, 255, 255);
+    min-width: 120px;
+}
+
+.timeline-fps-label {
+    -unity-text-align: middle-right;
+    color: rgb(179, 179, 179);
+    flex-grow: 1;
+}
+
+.timeline-ruler {
+    height: 30px;
+    background-color: rgb(64, 64, 64);
+}
+
+.timeline-tracks {
+    flex-grow: 1;
+    background-color: rgb(46, 46, 46);
+}
+
+.timeline-playhead {
+    position: absolute;
+    left: 0;
+    top: 30px;
+    width: 2px;
+    height: 100%;
+    background-color: rgb(255, 77, 77);
+}

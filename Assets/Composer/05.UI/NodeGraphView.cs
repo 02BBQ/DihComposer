@@ -18,6 +18,7 @@ namespace VFXComposer.UI
 
         private ConnectionDragHandler connectionDragHandler;
         private NodeCreationMenu creationMenu;
+        public NodeCreationMenu CreationMenu => creationMenu;
 
         private NodeView selectedNodeView;
         private NodeConnection selectedConnection;
@@ -57,7 +58,6 @@ namespace VFXComposer.UI
         {
             AddToClassList("node-graph-view");
 
-            // 레이어 순서: 배경 → 노드 → 간선 → 메뉴 (나중에 Add된 것이 위에 렌더링)
             gridBackground = new GridBackground();
             Add(gridBackground);
 
@@ -76,15 +76,10 @@ namespace VFXComposer.UI
 
             creationMenu = new NodeCreationMenu(this);
             creationMenu.Hide();
-            Add(creationMenu);
             
             RegisterCallback<WheelEvent>(OnWheel);
-            RegisterCallback<MouseDownEvent>(OnMouseDown);
-            RegisterCallback<MouseMoveEvent>(OnMouseMove);
-            RegisterCallback<MouseUpEvent>(OnMouseUp);
             RegisterCallback<KeyDownEvent>(OnKeyDown);
 
-            // Touch events for mobile
             RegisterCallback<PointerDownEvent>(OnPointerDown);
             RegisterCallback<PointerMoveEvent>(OnPointerMove);
             RegisterCallback<PointerUpEvent>(OnPointerUp);
@@ -94,7 +89,7 @@ namespace VFXComposer.UI
 
             schedule.Execute(UpdateConnections).Every(16);
             schedule.Execute(CheckLongPress).Every(50);
-            schedule.Execute(UpdateGraph).Every(16); // Update graph every frame for Time node
+            schedule.Execute(UpdateGraph).Every(16); 
         }
         
         public void SetGraph(NodeGraph newGraph)
@@ -131,7 +126,7 @@ namespace VFXComposer.UI
             nodeView.style.left = node.position.x;
             nodeView.style.top = node.position.y;
             
-            nodeView.RegisterCallback<MouseMoveEvent>(evt => {
+            nodeView.RegisterCallback<PointerMoveEvent>(evt => {
                 if (evt.button == 0) needsConnectionRedraw = true;
             });
         }
@@ -186,7 +181,7 @@ namespace VFXComposer.UI
         
         public void EndSlotDrag(NodeSlot slot, NodeView nodeView)
         {
-            connectionDragHandler.EndDrag(slot, nodeView);
+            connectionDragHandler.EndDrag(slot);
             needsConnectionRedraw = true;
         }
         
@@ -374,6 +369,18 @@ namespace VFXComposer.UI
         /// Redo 가능 여부
         /// </summary>
         public bool CanRedo => commandHistory.CanRedo;
+
+        /// <summary>
+        /// 노드 생성 메뉴 열기 (공개 API)
+        /// </summary>
+        public void ShowNodeCreationMenu(Vector2? position = null)
+        {
+            Vector2 menuPos = position ?? new Vector2(
+                contentRect.width / 2,
+                contentRect.height / 2
+            );
+            creationMenu.Show(menuPos);
+        }
         
         private void UpdateConnections()
         {
@@ -408,56 +415,6 @@ namespace VFXComposer.UI
             evt.StopPropagation();
         }
         
-        private void OnMouseDown(MouseDownEvent evt)
-        {
-            Focus();
-
-            // 우클릭: 노드 생성 메뉴
-            if (evt.button == 1)
-            {
-                creationMenu.Show(evt.mousePosition);
-                evt.StopPropagation();
-                return;
-            }
-
-            // 마우스 휠 드래그 또는 Alt+좌클릭: 팬 모드
-            if (evt.button == 2 || (evt.button == 0 && evt.altKey))
-            {
-                isPanning = true;
-                lastMousePosition = evt.mousePosition;
-                evt.StopPropagation();
-            }
-            // 일반 좌클릭: 간선 선택 시도 또는 배경 드래그 준비 + 롱프레스 시작
-            else if (evt.button == 0)
-            {
-                creationMenu.Hide();
-
-                // 먼저 간선 클릭 여부 확인 (mousePosition을 로컬 좌표로 변환)
-                Vector2 localMousePos = this.WorldToLocal(evt.mousePosition);
-                NodeConnection clickedConnection = FindConnectionAtPoint(localMousePos);
-                if (clickedConnection != null)
-                {
-                    // 간선 선택
-                    DeselectAll();
-                    selectedConnection = clickedConnection;
-                    needsConnectionRedraw = true;
-                    evt.StopPropagation();
-                    return;
-                }
-
-                // 간선이 없으면 배경 클릭 처리
-                DeselectAll();
-
-                // 배경 드래그 준비 (실제 드래그는 OnMouseMove에서 threshold 넘으면 시작)
-                dragStartPosition = evt.mousePosition;
-                lastMousePosition = evt.mousePosition;
-
-                // 롱프레스도 시작 (드래그가 시작되면 취소됨)
-                isLongPressing = true;
-                longPressStartPos = evt.mousePosition;
-                longPressTimer = 0f;
-            }
-        }
         
         private void CheckLongPress()
         {
@@ -473,76 +430,15 @@ namespace VFXComposer.UI
             }
         }
         
-        private void OnMouseMove(MouseMoveEvent evt)
-        {
-            if (connectionDragHandler.IsDragging)
-            {
-                connectionDragHandler.UpdateDrag(evt.mousePosition);
-                evt.StopPropagation();
-                return;
-            }
-
-            // 배경 드래그 threshold 체크 (좌클릭 후 약간 움직이면 팬 시작)
-            if (!isPanning && !isBackgroundDragging && isLongPressing)
-            {
-                float dist = Vector2.Distance(evt.mousePosition, dragStartPosition);
-                if (dist > dragThreshold)
-                {
-                    // Threshold 넘으면 배경 드래그 시작
-                    isBackgroundDragging = true;
-                    isPanning = true;
-                    isLongPressing = false; // 롱프레스 취소
-                }
-            }
-
-            if (isPanning)
-            {
-                Vector2 delta = evt.mousePosition - lastMousePosition;
-                panOffset += delta;
-
-                nodeContainer.transform.position = new Vector3(panOffset.x, panOffset.y, 0);
-                gridBackground.SetOffset(panOffset);
-
-                lastMousePosition = evt.mousePosition;
-                needsConnectionRedraw = true;
-
-                evt.StopPropagation();
-            }
-
-            // 롱프레스 중 움직임 체크 (threshold 안넘었을 때)
-            if (isLongPressing && !isBackgroundDragging)
-            {
-                float dist = Vector2.Distance(evt.mousePosition, longPressStartPos);
-                if (dist > 10f)
-                {
-                    isLongPressing = false;
-                }
-            }
-        }
         
-        private void OnMouseUp(MouseUpEvent evt)
-        {
-            if (evt.button == 2 || evt.button == 0)
-            {
-                isPanning = false;
-                isBackgroundDragging = false; // 배경 드래그 종료
-            }
-
-            if (evt.button == 0)
-            {
-                isLongPressing = false;
-            }
-
-            if (connectionDragHandler.IsDragging)
-            {
-                connectionDragHandler.CancelDrag();
-            }
-        }
 
         // === Touch Gesture Handlers ===
 
         private void OnPointerDown(PointerDownEvent evt)
         {
+            Focus();
+
+            // Track touches for mobile gestures
             if (evt.pointerType != "mouse")
             {
                 activeTouches[evt.pointerId] = evt.position;
@@ -552,12 +448,63 @@ namespace VFXComposer.UI
                 {
                     isPinching = true;
                     lastPinchDistance = GetPinchDistance();
+                    return;
+                }
+            }
+
+            // 우클릭 (마우스만): 노드 생성 메뉴
+            if (evt.button == 1 && evt.pointerType == "mouse")
+            {
+                creationMenu.Show(evt.position);
+                evt.StopPropagation();
+                return;
+            }
+
+            // 마우스 휠 드래그 또는 Alt+좌클릭: 팬 모드
+            if (evt.button == 2 || (evt.button == 0 && evt.altKey))
+            {
+                isPanning = true;
+                lastMousePosition = evt.position;
+                evt.StopPropagation();
+            }
+            // 일반 좌클릭 또는 싱글 터치: 간선 선택 시도 또는 배경 드래그 준비
+            else if (evt.button == 0 || evt.isPrimary)
+            {
+                creationMenu.Hide();
+
+                // 먼저 간선 클릭 여부 확인
+                Vector2 localMousePos = this.WorldToLocal(evt.position);
+                NodeConnection clickedConnection = FindConnectionAtPoint(localMousePos);
+                if (clickedConnection != null)
+                {
+                    // 간선 선택
+                    DeselectAll();
+                    selectedConnection = clickedConnection;
+                    needsConnectionRedraw = true;
+                    evt.StopPropagation();
+                    return;
+                }
+
+                // 간선이 없으면 배경 클릭 처리
+                DeselectAll();
+
+                // 배경 드래그 준비
+                dragStartPosition = evt.position;
+                lastMousePosition = evt.position;
+
+                // 롱프레스 시작 (터치만)
+                if (evt.pointerType != "mouse")
+                {
+                    isLongPressing = true;
+                    longPressStartPos = evt.position;
+                    longPressTimer = 0f;
                 }
             }
         }
 
         private void OnPointerMove(PointerMoveEvent evt)
         {
+            // Update touch tracking
             if (evt.pointerType != "mouse" && activeTouches.ContainsKey(evt.pointerId))
             {
                 activeTouches[evt.pointerId] = evt.position;
@@ -574,17 +521,61 @@ namespace VFXComposer.UI
                         ApplyZoom(zoomDelta, GetPinchCenter());
                         lastPinchDistance = currentDistance;
                     }
+                    evt.StopPropagation();
+                    return;
                 }
-                else if (activeTouches.Count == 1)
+            }
+
+            // Connection drag handling
+            if (connectionDragHandler.IsDragging)
+            {
+                connectionDragHandler.UpdateDrag(evt.position);
+                evt.StopPropagation();
+                return;
+            }
+
+            // 배경 드래그 threshold 체크 (좌클릭/터치 후 약간 움직이면 팬 시작)
+            if (!isPanning && !isBackgroundDragging && isLongPressing)
+            {
+                float dist = Vector2.Distance(evt.position, dragStartPosition);
+                if (dist > dragThreshold)
                 {
-                    // Single finger pan (if not dragging nodes)
-                    // This is handled by existing mouse events
+                    // Threshold 넘으면 배경 드래그 시작
+                    isBackgroundDragging = true;
+                    isPanning = true;
+                    isLongPressing = false; // 롱프레스 취소
+                }
+            }
+
+            // Panning
+            if (isPanning)
+            {
+                Vector2 delta = (Vector2)evt.position - lastMousePosition;
+                panOffset += delta;
+
+                nodeContainer.transform.position = new Vector3(panOffset.x, panOffset.y, 0);
+                gridBackground.SetOffset(panOffset);
+
+                lastMousePosition = evt.position;
+                needsConnectionRedraw = true;
+
+                evt.StopPropagation();
+            }
+
+            // 롱프레스 중 움직임 체크 (threshold 안넘었을 때)
+            if (isLongPressing && !isBackgroundDragging)
+            {
+                float dist = Vector2.Distance(evt.position, longPressStartPos);
+                if (dist > 10f)
+                {
+                    isLongPressing = false;
                 }
             }
         }
 
         private void OnPointerUp(PointerUpEvent evt)
         {
+            // Update touch tracking
             if (evt.pointerType != "mouse")
             {
                 activeTouches.Remove(evt.pointerId);
@@ -593,6 +584,23 @@ namespace VFXComposer.UI
                 {
                     isPinching = false;
                 }
+            }
+
+            // Handle pan/drag release
+            if (evt.button == 2 || evt.button == 0)
+            {
+                isPanning = false;
+                isBackgroundDragging = false;
+            }
+
+            if (evt.button == 0)
+            {
+                isLongPressing = false;
+            }
+
+            if (connectionDragHandler.IsDragging)
+            {
+                connectionDragHandler.CancelDrag();
             }
         }
 
@@ -746,8 +754,7 @@ namespace VFXComposer.UI
                 var outputPos = GetSlotWorldPosition(outputNode, connection.outputSlot, true);
                 var inputPos = GetSlotWorldPosition(inputNode, connection.inputSlot, false);
 
-                // 선택된 connection은 더 두껍고 밝은 색으로 표시
-                bool isSelected = (connection == selectedConnection);
+                bool isSelected = connection == selectedConnection;
                 painter.lineWidth = isSelected ? 5f : 3f;
                 painter.strokeColor = isSelected ? Color.yellow : connection.connectionColor;
 

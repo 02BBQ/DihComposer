@@ -44,10 +44,10 @@ namespace VFXComposer.UI
             
             BuildSlots();
             
-            RegisterCallback<MouseDownEvent>(OnMouseDown);
-            RegisterCallback<MouseMoveEvent>(OnMouseMove);
-            RegisterCallback<MouseUpEvent>(OnMouseUp);
-            RegisterCallback<MouseLeaveEvent>(OnMouseLeave);
+            RegisterCallback<PointerDownEvent>(OnPointerDown);
+            RegisterCallback<PointerMoveEvent>(OnPointerMove);
+            RegisterCallback<PointerUpEvent>(OnPointerUp);
+            RegisterCallback<PointerLeaveEvent>(OnPointerLeave);
             
             schedule.Execute(() => UpdatePreview(previewImage)).Every(100);
         }
@@ -116,8 +116,8 @@ namespace VFXComposer.UI
             Color portColor = NodeConnection.GetColorForDataType(slot.dataType);
             port.style.backgroundColor = portColor;
 
-            port.RegisterCallback<MouseDownEvent>(evt => OnSlotMouseDown(evt, slot));
-            port.RegisterCallback<MouseUpEvent>(evt => OnSlotMouseUp(evt, slot));
+            port.RegisterCallback<PointerDownEvent>(evt => OnSlotPointerDown(evt, slot));
+            port.RegisterCallback<PointerUpEvent>(evt => OnSlotPointerUp(evt, slot));
 
             // 슬롯 element 캐싱
             slotElements[slot] = port;
@@ -139,7 +139,7 @@ namespace VFXComposer.UI
             return slotContainer;
         }
         
-        private void OnSlotMouseDown(MouseDownEvent evt, NodeSlot slot)
+        private void OnSlotPointerDown(PointerDownEvent evt, NodeSlot slot)
         {
             if (evt.button != 0) return;
 
@@ -148,56 +148,56 @@ namespace VFXComposer.UI
             var graphView = GetFirstAncestorOfType<NodeGraphView>();
             if (graphView != null)
             {
-                // Use mousePosition (screen coordinates) instead of localMousePosition
-                graphView.StartSlotDrag(slot, this, evt.mousePosition);
+                // Use position (works for both mouse and touch)
+                graphView.StartSlotDrag(slot, this, evt.position);
             }
 
             evt.StopPropagation();
         }
-        
-        private void OnSlotMouseUp(MouseUpEvent evt, NodeSlot slot)
+
+        private void OnSlotPointerUp(PointerUpEvent evt, NodeSlot slot)
         {
             if (evt.button != 0) return;
-            
+
             isSlotDragging = false;
-            
+
             var graphView = GetFirstAncestorOfType<NodeGraphView>();
             if (graphView != null)
             {
                 graphView.EndSlotDrag(slot, this);
             }
-            
+
             evt.StopPropagation();
         }
         
-        private void OnMouseDown(MouseDownEvent evt)
+        private void OnPointerDown(PointerDownEvent evt)
         {
             if (evt.button == 0 && !isSlotDragging)
             {
                 isDragging = true;
-                dragStartMousePos = evt.mousePosition;
+                dragStartMousePos = evt.position;
                 dragStartNodePos = node.position;
-                
-                this.CaptureMouse();
-                
+
+                this.CapturePointer(evt.pointerId);
+
                 BringToFront();
                 AddToClassList("node--selected");
-                
+
                 var graphView = GetFirstAncestorOfType<NodeGraphView>();
                 if (graphView != null)
                 {
                     graphView.SelectNode(this);
                 }
-                
+
                 evt.StopPropagation();
             }
         }
-        
-        private void OnMouseMove(MouseMoveEvent evt)
+
+        private void OnPointerMove(PointerMoveEvent evt)
         {
             if (isDragging && !isSlotDragging)
             {
-                Vector2 delta = evt.mousePosition - dragStartMousePos;
+                Vector2 delta = (Vector2)evt.position - dragStartMousePos;
 
                 // Get zoom scale from graph view
                 var graphView = GetFirstAncestorOfType<NodeGraphView>();
@@ -213,19 +213,19 @@ namespace VFXComposer.UI
                 evt.StopPropagation();
             }
         }
-        
-        private void OnMouseUp(MouseUpEvent evt)
+
+        private void OnPointerUp(PointerUpEvent evt)
         {
             if (evt.button == 0)
             {
                 if (isDragging)
                 {
                     isDragging = false;
-                    this.ReleaseMouse();
+                    this.ReleasePointer(evt.pointerId);
                 }
-                
+
                 isSlotDragging = false;
-                
+
                 evt.StopPropagation();
             }
         }
@@ -314,14 +314,14 @@ namespace VFXComposer.UI
             return portCenter;
         }
         
-        private void OnMouseLeave(MouseLeaveEvent evt)
+        private void OnPointerLeave(PointerLeaveEvent evt)
         {
             if (isDragging)
             {
                 isDragging = false;
-                this.ReleaseMouse();
+                this.ReleasePointer(evt.pointerId);
             }
-            
+
             isSlotDragging = false;
         }
     }

@@ -47,7 +47,7 @@ namespace VFXComposer.UI
         public NodeCreationMenu(NodeGraphView view)
         {
             graphView = view;
-            
+
             style.position = Position.Absolute;
             style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.95f);
             style.borderTopWidth = 2;
@@ -66,6 +66,9 @@ namespace VFXComposer.UI
             style.maxHeight = 400;
             style.paddingTop = 4;
             style.paddingBottom = 4;
+
+            // 최상단 레이어로 설정
+            pickingMode = PickingMode.Position;
             
             var scrollView = new ScrollView();
             scrollView.style.maxHeight = 400;
@@ -98,6 +101,7 @@ namespace VFXComposer.UI
             style.left = position.x;
             style.top = position.y;
             style.display = DisplayStyle.Flex;
+            BringToFront();
         }
         
         public void Hide()
