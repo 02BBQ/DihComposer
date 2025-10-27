@@ -6,7 +6,6 @@ using System.Reflection;
 using System.Collections.Generic;
 using VFXComposer.Core;
 using VFXComposer.Core.Animation;
-using UnityEditor.UIElements;
 
 namespace VFXComposer.UI
 {
@@ -298,28 +297,119 @@ namespace VFXComposer.UI
 
         private void AddColorField(InspectorFieldInfo fieldInfo, Color currentValue)
         {
-            var fieldContainer = new VisualElement();
-            fieldContainer.style.flexDirection = FlexDirection.Row;
-            fieldContainer.AddToClassList("inspector__field-container");
+            var mainContainer = new VisualElement();
+            mainContainer.AddToClassList("inspector__field-container");
 
-            var colorField = new ColorField(fieldInfo.Label);
-            colorField.value = currentValue;
-            colorField.style.flexGrow = 1;
-            colorField.RegisterValueChangedCallback(evt =>
-            {
-                SetValue(fieldInfo.MemberInfo, evt.newValue);
-                onValueChanged?.Invoke();
-            });
-            colorField.AddToClassList("inspector__field");
-            fieldContainer.Add(colorField);
+            // 라벨과 키프레임 버튼을 위한 헤더 행
+            var headerRow = new VisualElement();
+            headerRow.style.flexDirection = FlexDirection.Row;
+            headerRow.style.marginBottom = 4;
+            mainContainer.Add(headerRow);
+
+            var label = new Label(fieldInfo.Label);
+            label.style.flexGrow = 1;
+            headerRow.Add(label);
 
             if (timelineController != null)
             {
                 var keyframeButton = CreateKeyframeButton(fieldInfo);
-                fieldContainer.Add(keyframeButton);
+                headerRow.Add(keyframeButton);
             }
 
-            container.Add(fieldContainer);
+            // 색상 프리뷰 박스
+            var colorPreview = new VisualElement();
+            colorPreview.style.height = 24;
+            colorPreview.style.marginBottom = 4;
+            colorPreview.style.backgroundColor = currentValue;
+            colorPreview.style.borderTopWidth = 1;
+            colorPreview.style.borderBottomWidth = 1;
+            colorPreview.style.borderLeftWidth = 1;
+            colorPreview.style.borderRightWidth = 1;
+            colorPreview.style.borderTopColor = new Color(0.3f, 0.3f, 0.3f);
+            colorPreview.style.borderBottomColor = new Color(0.3f, 0.3f, 0.3f);
+            colorPreview.style.borderLeftColor = new Color(0.3f, 0.3f, 0.3f);
+            colorPreview.style.borderRightColor = new Color(0.3f, 0.3f, 0.3f);
+            mainContainer.Add(colorPreview);
+
+            // RGB 슬라이더
+            AddColorSlider("R", currentValue.r, (value) =>
+            {
+                Color newColor = (Color)GetValue(fieldInfo.MemberInfo);
+                newColor.r = value;
+                SetValue(fieldInfo.MemberInfo, newColor);
+                colorPreview.style.backgroundColor = newColor;
+                onValueChanged?.Invoke();
+            }, mainContainer);
+
+            AddColorSlider("G", currentValue.g, (value) =>
+            {
+                Color newColor = (Color)GetValue(fieldInfo.MemberInfo);
+                newColor.g = value;
+                SetValue(fieldInfo.MemberInfo, newColor);
+                colorPreview.style.backgroundColor = newColor;
+                onValueChanged?.Invoke();
+            }, mainContainer);
+
+            AddColorSlider("B", currentValue.b, (value) =>
+            {
+                Color newColor = (Color)GetValue(fieldInfo.MemberInfo);
+                newColor.b = value;
+                SetValue(fieldInfo.MemberInfo, newColor);
+                colorPreview.style.backgroundColor = newColor;
+                onValueChanged?.Invoke();
+            }, mainContainer);
+
+            AddColorSlider("A", currentValue.a, (value) =>
+            {
+                Color newColor = (Color)GetValue(fieldInfo.MemberInfo);
+                newColor.a = value;
+                SetValue(fieldInfo.MemberInfo, newColor);
+                colorPreview.style.backgroundColor = newColor;
+                onValueChanged?.Invoke();
+            }, mainContainer);
+
+            container.Add(mainContainer);
+        }
+
+        private void AddColorSlider(string label, float initialValue, Action<float> onChanged, VisualElement parent)
+        {
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.marginBottom = 2;
+
+            var labelElement = new Label(label);
+            labelElement.style.width = 16;
+            labelElement.style.marginRight = 4;
+            row.Add(labelElement);
+
+            var slider = new Slider(0f, 1f);
+            slider.value = initialValue;
+            slider.style.flexGrow = 1;
+            slider.style.marginRight = 4;
+            slider.RegisterValueChangedCallback(evt => onChanged(evt.newValue));
+            row.Add(slider);
+
+            var field = new FloatField();
+            field.value = initialValue;
+            field.style.width = 50;
+            field.formatString = "F2";
+            field.RegisterValueChangedCallback(evt =>
+            {
+                float value = Mathf.Clamp01(evt.newValue);
+                if (value != evt.newValue)
+                {
+                    field.SetValueWithoutNotify(value);
+                }
+                slider.SetValueWithoutNotify(value);
+                onChanged(value);
+            });
+            row.Add(field);
+
+            // 슬라이더와 필드 동기화
+            slider.RegisterValueChangedCallback(evt => field.SetValueWithoutNotify(evt.newValue));
+
+            parent.Add(row);
         }
 
         private void AddVector2Field(InspectorFieldInfo fieldInfo, Vector2 currentValue)

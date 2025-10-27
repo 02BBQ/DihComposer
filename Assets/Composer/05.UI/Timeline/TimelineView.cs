@@ -25,6 +25,7 @@ namespace VFXComposer.UI
 
         private float pixelsPerSecond = 100f; // 1초당 픽셀 수 (줌 레벨)
         private float scrollOffset = 0f;
+        private bool isScrubbing = false; // 타임라인 드래그 중인지
 
         public TimelineView(TimelineController controller)
         {
@@ -100,8 +101,11 @@ namespace VFXComposer.UI
             timeRuler.generateVisualContent += DrawTimeRuler;
             Add(timeRuler);
 
-            // 마우스 클릭으로 시간 이동 (Scrubbing)
-            timeRuler.RegisterCallback<MouseDownEvent>(OnTimeRulerClick);
+            // 포인터 이벤트로 스크럽 (드래그로 시간 이동)
+            timeRuler.RegisterCallback<PointerDownEvent>(OnTimeRulerPointerDown);
+            timeRuler.RegisterCallback<PointerMoveEvent>(OnTimeRulerPointerMove);
+            timeRuler.RegisterCallback<PointerUpEvent>(OnTimeRulerPointerUp);
+            timeRuler.RegisterCallback<PointerLeaveEvent>(OnTimeRulerPointerLeave);
         }
 
         private void CreateTrackList()
@@ -189,18 +193,63 @@ namespace VFXComposer.UI
             }
         }
 
-        private void OnTimeRulerClick(MouseDownEvent evt)
+        private void OnTimeRulerPointerDown(PointerDownEvent evt)
         {
-            // 클릭 위치를 시간으로 변환
-            float x = evt.localMousePosition.x;
+            // 터치는 button이 -1일 수 있으므로 isPrimary 체크
+            if (evt.button != 0 && evt.button != -1) return;
+            if (!evt.isPrimary) return;
+
+            isScrubbing = true;
+            timeRuler.CapturePointer(evt.pointerId);
+
+            // 클릭 위치를 시간으로 변환 (contentRect 내부로 제한)
+            float x = Mathf.Clamp(evt.localPosition.x, 0, timeRuler.contentRect.width);
+            UpdateTimeFromPosition(x);
+
+            evt.StopPropagation();
+        }
+
+        private void OnTimeRulerPointerMove(PointerMoveEvent evt)
+        {
+            if (!isScrubbing) return;
+
+            // 드래그 중 시간 업데이트 (contentRect 내부로 제한)
+            float x = Mathf.Clamp(evt.localPosition.x, 0, timeRuler.contentRect.width);
+            UpdateTimeFromPosition(x);
+
+            evt.StopPropagation();
+        }
+
+        private void OnTimeRulerPointerUp(PointerUpEvent evt)
+        {
+            if (!evt.isPrimary) return;
+
+            if (isScrubbing)
+            {
+                isScrubbing = false;
+                timeRuler.ReleasePointer(evt.pointerId);
+            }
+
+            evt.StopPropagation();
+        }
+
+        private void OnTimeRulerPointerLeave(PointerLeaveEvent evt)
+        {
+            if (isScrubbing)
+            {
+                isScrubbing = false;
+                timeRuler.ReleasePointer(evt.pointerId);
+            }
+        }
+
+        private void UpdateTimeFromPosition(float x)
+        {
             float time = (x - scrollOffset) / pixelsPerSecond;
             time = Mathf.Clamp(time, 0f, controller.duration);
 
             // 프레임에 스냅
             int frame = controller.TimeToFrame(time);
             controller.SetFrame(frame);
-
-            evt.StopPropagation();
         }
 
         private void OnTrackListClick(MouseDownEvent evt)

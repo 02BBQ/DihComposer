@@ -141,7 +141,9 @@ namespace VFXComposer.UI
         
         private void OnSlotPointerDown(PointerDownEvent evt, NodeSlot slot)
         {
-            if (evt.button != 0) return;
+            // 터치는 button이 -1일 수 있으므로 체크
+            if (evt.button != 0 && evt.button != -1) return;
+            if (!evt.isPrimary) return;
 
             isSlotDragging = true;
 
@@ -157,7 +159,7 @@ namespace VFXComposer.UI
 
         private void OnSlotPointerUp(PointerUpEvent evt, NodeSlot slot)
         {
-            if (evt.button != 0) return;
+            if (!evt.isPrimary) return;
 
             isSlotDragging = false;
 
@@ -172,7 +174,8 @@ namespace VFXComposer.UI
         
         private void OnPointerDown(PointerDownEvent evt)
         {
-            if (evt.button == 0 && !isSlotDragging)
+            // 터치는 button이 -1일 수 있으므로 체크
+            if ((evt.button == 0 || evt.button == -1) && evt.isPrimary && !isSlotDragging)
             {
                 isDragging = true;
                 dragStartMousePos = evt.position;
@@ -216,7 +219,8 @@ namespace VFXComposer.UI
 
         private void OnPointerUp(PointerUpEvent evt)
         {
-            if (evt.button == 0)
+            // 터치는 button이 -1일 수 있으므로 체크
+            if ((evt.button == 0 || evt.button == -1) && evt.isPrimary)
             {
                 if (isDragging)
                 {

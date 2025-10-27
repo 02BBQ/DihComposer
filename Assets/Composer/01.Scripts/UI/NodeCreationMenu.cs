@@ -67,7 +67,6 @@ namespace VFXComposer.UI
             style.paddingTop = 4;
             style.paddingBottom = 4;
 
-            // 최상단 레이어로 설정
             pickingMode = PickingMode.Position;
             
             var scrollView = new ScrollView();

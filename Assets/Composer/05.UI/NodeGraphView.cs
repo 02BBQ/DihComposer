@@ -322,13 +322,13 @@ namespace VFXComposer.UI
                 DeleteSelected();
                 evt.StopPropagation();
             }
-            // Undo: Ctrl+Z (or Cmd+Z on Mac)
+            // Undo: Ctrl+Z
             else if ((evt.ctrlKey || evt.commandKey) && evt.keyCode == KeyCode.Z && !evt.shiftKey)
             {
                 Undo();
                 evt.StopPropagation();
             }
-            // Redo: Ctrl+Y or Ctrl+Shift+Z (or Cmd+Shift+Z on Mac)
+            // Redo: Ctrl+Y or Ctrl+Shift+Z
             else if ((evt.ctrlKey || evt.commandKey) && (evt.keyCode == KeyCode.Y || (evt.shiftKey && evt.keyCode == KeyCode.Z)))
             {
                 Redo();
@@ -468,7 +468,7 @@ namespace VFXComposer.UI
                 evt.StopPropagation();
             }
             // 일반 좌클릭 또는 싱글 터치: 간선 선택 시도 또는 배경 드래그 준비
-            else if (evt.button == 0 || evt.isPrimary)
+            else if ((evt.button == 0 || evt.button == -1) && evt.isPrimary)
             {
                 creationMenu.Hide();
 
@@ -587,13 +587,13 @@ namespace VFXComposer.UI
             }
 
             // Handle pan/drag release
-            if (evt.button == 2 || evt.button == 0)
+            if (evt.button == 2 || evt.button == 0 || evt.button == -1)
             {
                 isPanning = false;
                 isBackgroundDragging = false;
             }
 
-            if (evt.button == 0)
+            if (evt.button == 0 || evt.button == -1)
             {
                 isLongPressing = false;
             }
