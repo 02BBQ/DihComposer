@@ -138,15 +138,22 @@ namespace VFXComposer.Core
                 if (field.Name == "inputSlots" || field.Name == "outputSlots" || field.Name == "cachedOutputs")
                     continue;
 
-                object value = field.GetValue(node);
-                string valueJson = SerializationHelper.SerializeValue(value, out string typeName);
-
-                nodeData.properties.Add(new PropertyData
+                try
                 {
-                    key = field.Name,
-                    valueJson = valueJson,
-                    valueType = typeName
-                });
+                    object value = field.GetValue(node);
+                    string valueJson = SerializationHelper.SerializeValue(value, out string typeName);
+
+                    nodeData.properties.Add(new PropertyData
+                    {
+                        key = field.Name,
+                        valueJson = valueJson,
+                        valueType = typeName
+                    });
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[ProjectManager] Failed to serialize field '{field.Name}' of node '{node.nodeName}': {e.Message}");
+                }
             }
         }
 

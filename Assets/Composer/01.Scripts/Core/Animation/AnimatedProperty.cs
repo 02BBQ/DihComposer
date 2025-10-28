@@ -27,7 +27,7 @@ namespace VFXComposer.Core.Animation
     public class AnimatedProperty
     {
         public string propertyName;
-        public Type valueType;
+        [NonSerialized] public Type valueType;  // JSON 직렬화에서 제외
         public DataType dataType;
         public InterpolationType interpolationType = InterpolationType.Linear;
         public List<Keyframe> keyframes = new List<Keyframe>();
@@ -174,6 +174,31 @@ namespace VFXComposer.Core.Animation
         }
 
         public bool HasKeyframes => keyframes.Count > 0;
+
+        /// <summary>
+        /// dataType으로부터 valueType 복원 (역직렬화 후 호출)
+        /// </summary>
+        public void RestoreValueType()
+        {
+            valueType = GetTypeFromDataType(dataType);
+        }
+
+        /// <summary>
+        /// DataType enum을 C# Type으로 변환
+        /// </summary>
+        public static Type GetTypeFromDataType(DataType dataType)
+        {
+            switch (dataType)
+            {
+                case DataType.Float: return typeof(float);
+                case DataType.Int: return typeof(int);
+                case DataType.Vector2: return typeof(Vector2);
+                case DataType.Vector3: return typeof(Vector3);
+                case DataType.Color: return typeof(Color);
+                case DataType.Bool: return typeof(bool);
+                default: return typeof(float);
+            }
+        }
     }
 
     public enum DataType
