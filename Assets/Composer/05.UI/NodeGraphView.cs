@@ -32,6 +32,9 @@ namespace VFXComposer.UI
         private NodeInspector inspector;
         private CommandHistory commandHistory = new CommandHistory();
 
+        // Public access to CommandHistory for Inspector
+        public CommandHistory GetCommandHistory() => commandHistory;
+
         // Undo/Redo state change event
         public event Action OnCommandHistoryChanged;
 
@@ -53,6 +56,11 @@ namespace VFXComposer.UI
         private Dictionary<int, Vector2> activeTouches = new Dictionary<int, Vector2>();
         private float lastPinchDistance = 0f;
         private bool isPinching = false;
+
+        // Node drag variables (handled at graph level for mobile compatibility)
+        private NodeView draggingNodeView = null;
+        private Vector2 nodeDragStartMousePos;
+        private Vector2 nodeDragStartNodePos;
         
         public NodeGraphView()
         {
@@ -183,6 +191,27 @@ namespace VFXComposer.UI
         {
             connectionDragHandler.EndDrag(slot);
             needsConnectionRedraw = true;
+        }
+
+        public void StartNodeDrag(NodeView nodeView, Vector2 mousePosition)
+        {
+            draggingNodeView = nodeView;
+            nodeDragStartMousePos = mousePosition;
+            nodeDragStartNodePos = nodeView.node.position;
+            Debug.Log($"[NodeGraphView] StartNodeDrag - {nodeView.node.nodeName}");
+        }
+
+        public void EndNodeDrag()
+        {
+            if (draggingNodeView != null)
+            {
+                Debug.Log($"[NodeGraphView] EndNodeDrag - {draggingNodeView.node.nodeName}");
+                draggingNodeView = null;
+            }
+            else
+            {
+                Debug.Log("[NodeGraphView] EndNodeDrag called but draggingNodeView is already null");
+            }
         }
         
         public void SelectNode(NodeView nodeView)
@@ -436,6 +465,8 @@ namespace VFXComposer.UI
 
         private void OnPointerDown(PointerDownEvent evt)
         {
+            Debug.Log($"[NodeGraphView] OnPointerDown - button: {evt.button}, isPrimary: {evt.isPrimary}, pointerType: {evt.pointerType}, target: {evt.target?.GetType().Name}");
+
             Focus();
 
             // Track touches for mobile gestures
@@ -446,28 +477,28 @@ namespace VFXComposer.UI
                 // Check for pinch gesture (2 fingers)
                 if (activeTouches.Count == 2)
                 {
+                    Debug.Log("[NodeGraphView] Pinch gesture detected");
                     isPinching = true;
                     lastPinchDistance = GetPinchDistance();
                     return;
                 }
             }
 
-            // 우클릭 (마우스만): 노드 생성 메뉴
             if (evt.button == 1 && evt.pointerType == "mouse")
             {
+                Debug.Log("[NodeGraphView] Right-click menu");
                 creationMenu.Show(evt.position);
                 evt.StopPropagation();
                 return;
             }
 
-            // 마우스 휠 드래그 또는 Alt+좌클릭: 팬 모드
             if (evt.button == 2 || (evt.button == 0 && evt.altKey))
             {
+                Debug.Log("[NodeGraphView] Pan mode");
                 isPanning = true;
                 lastMousePosition = evt.position;
                 evt.StopPropagation();
             }
-            // 일반 좌클릭 또는 싱글 터치: 간선 선택 시도 또는 배경 드래그 준비
             else if ((evt.button == 0 || evt.button == -1) && evt.isPrimary)
             {
                 creationMenu.Hide();
@@ -477,6 +508,7 @@ namespace VFXComposer.UI
                 NodeConnection clickedConnection = FindConnectionAtPoint(localMousePos);
                 if (clickedConnection != null)
                 {
+                    Debug.Log("[NodeGraphView] Connection clicked");
                     // 간선 선택
                     DeselectAll();
                     selectedConnection = clickedConnection;
@@ -485,25 +517,45 @@ namespace VFXComposer.UI
                     return;
                 }
 
-                // 간선이 없으면 배경 클릭 처리
-                DeselectAll();
+                // 배경 클릭인지 확인 (NodeView나 다른 UI 요소가 아닌 경우만)
+                // evt.target이 배경 요소(this, gridBackground, nodeContainer, connectionLayer)인지 확인
+                bool isBackgroundClick = (evt.target == this ||
+                                         evt.target == gridBackground ||
+                                         evt.target == nodeContainer ||
+                                         evt.target == connectionLayer);
 
-                // 배경 드래그 준비
-                dragStartPosition = evt.position;
-                lastMousePosition = evt.position;
+                Debug.Log($"[NodeGraphView] isBackgroundClick: {isBackgroundClick}");
 
-                // 롱프레스 시작 (터치만)
-                if (evt.pointerType != "mouse")
+                if (isBackgroundClick)
                 {
-                    isLongPressing = true;
-                    longPressStartPos = evt.position;
-                    longPressTimer = 0f;
+                    Debug.Log("[NodeGraphView] Background click - preparing pan");
+                    // 간선이 없고 배경 클릭이면 배경 드래그 준비
+                    DeselectAll();
+
+                    // 배경 드래그 준비
+                    dragStartPosition = evt.position;
+                    lastMousePosition = evt.position;
+
+                    // 롱프레스 시작 (터치만)
+                    if (evt.pointerType != "mouse")
+                    {
+                        isLongPressing = true;
+                        longPressStartPos = evt.position;
+                        longPressTimer = 0f;
+                    }
                 }
+                else
+                {
+                    Debug.Log("[NodeGraphView] Not background - letting child handle it");
+                }
+                // 배경이 아니면 이벤트를 자식 요소가 처리하도록 놔둠 (StopPropagation 안 함)
             }
         }
 
         private void OnPointerMove(PointerMoveEvent evt)
         {
+            Debug.Log($"[NodeGraphView] OnPointerMove - target: {evt.target?.GetType().Name}, isPanning: {isPanning}, isLongPressing: {isLongPressing}, draggingNode: {draggingNodeView?.node.nodeName}");
+
             // Update touch tracking
             if (evt.pointerType != "mouse" && activeTouches.ContainsKey(evt.pointerId))
             {
@@ -511,6 +563,7 @@ namespace VFXComposer.UI
 
                 if (isPinching && activeTouches.Count == 2)
                 {
+                    Debug.Log("[NodeGraphView] Pinch zooming");
                     // Pinch to zoom
                     float currentDistance = GetPinchDistance();
                     float deltaDistance = currentDistance - lastPinchDistance;
@@ -526,9 +579,26 @@ namespace VFXComposer.UI
                 }
             }
 
+            // Node drag handling (handled here for mobile compatibility)
+            if (draggingNodeView != null)
+            {
+                Debug.Log($"[NodeGraphView] Dragging node {draggingNodeView.node.nodeName}");
+                Vector2 delta = (Vector2)evt.position - nodeDragStartMousePos;
+                delta /= zoomScale; // Apply zoom scale
+
+                draggingNodeView.node.position = nodeDragStartNodePos + delta;
+                draggingNodeView.style.left = draggingNodeView.node.position.x;
+                draggingNodeView.style.top = draggingNodeView.node.position.y;
+
+                needsConnectionRedraw = true;
+                evt.StopPropagation();
+                return;
+            }
+
             // Connection drag handling
             if (connectionDragHandler.IsDragging)
             {
+                Debug.Log("[NodeGraphView] Connection dragging");
                 connectionDragHandler.UpdateDrag(evt.position);
                 evt.StopPropagation();
                 return;
@@ -537,9 +607,11 @@ namespace VFXComposer.UI
             // 배경 드래그 threshold 체크 (좌클릭/터치 후 약간 움직이면 팬 시작)
             if (!isPanning && !isBackgroundDragging && isLongPressing)
             {
+                Debug.Log("[NodeGraphView] Checking drag threshold");
                 float dist = Vector2.Distance(evt.position, dragStartPosition);
                 if (dist > dragThreshold)
                 {
+                    Debug.Log("[NodeGraphView] Threshold exceeded - starting pan");
                     // Threshold 넘으면 배경 드래그 시작
                     isBackgroundDragging = true;
                     isPanning = true;
@@ -550,6 +622,7 @@ namespace VFXComposer.UI
             // Panning
             if (isPanning)
             {
+                Debug.Log("[NodeGraphView] Panning");
                 Vector2 delta = (Vector2)evt.position - lastMousePosition;
                 panOffset += delta;
 
@@ -568,13 +641,18 @@ namespace VFXComposer.UI
                 float dist = Vector2.Distance(evt.position, longPressStartPos);
                 if (dist > 10f)
                 {
+                    Debug.Log("[NodeGraphView] Long press canceled by movement");
                     isLongPressing = false;
                 }
             }
+
+            Debug.Log("[NodeGraphView] OnPointerMove finished - not handling");
         }
 
         private void OnPointerUp(PointerUpEvent evt)
         {
+            Debug.Log($"[NodeGraphView] OnPointerUp - button: {evt.button}, draggingNode: {draggingNodeView?.node.nodeName}");
+
             // Update touch tracking
             if (evt.pointerType != "mouse")
             {
@@ -596,6 +674,13 @@ namespace VFXComposer.UI
             if (evt.button == 0 || evt.button == -1)
             {
                 isLongPressing = false;
+
+                // End node dragging - 항상 체크!
+                if (draggingNodeView != null)
+                {
+                    Debug.Log($"[NodeGraphView] Ending node drag for {draggingNodeView.node.nodeName}");
+                    EndNodeDrag();
+                }
             }
 
             if (connectionDragHandler.IsDragging)

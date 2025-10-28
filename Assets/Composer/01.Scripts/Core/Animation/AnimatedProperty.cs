@@ -1,3 +1,21 @@
+/*
+ * AnimatedProperty.cs
+ *
+ * 타임라인에서 애니메이션 가능한 프로퍼티를 표현하는 클래스
+ *
+ * 구조:
+ * - propertyName: 프로퍼티 이름
+ * - valueType: C# Type (직렬화 불가능)
+ * - dataType: DataType enum (직렬화 가능, 저장용)
+ * - interpolationType: 기본 보간 타입 (각 키프레임은 개별 설정 가능)
+ * - keyframes: 시간순으로 정렬된 키프레임 리스트
+ *
+ * 보간 방식:
+ * - Evaluate(time) 호출 시 현재 시간의 값을 계산
+ * - 두 키프레임 사이에서 interpolationType에 따라 보간
+ * - 지원 타입: float, int, Vector2, Vector3, Color, bool
+ */
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -5,50 +23,50 @@ using UnityEngine;
 
 namespace VFXComposer.Core.Animation
 {
-    /// <summary>
-    /// 애니메이션 가능한 프로퍼티 - 키프레임 리스트 관리 및 보간
-    /// </summary>
     [Serializable]
     public class AnimatedProperty
     {
-        public string propertyName;     // 프로퍼티 이름 (예: "scale", "color.r")
-        public Type valueType;          // 값 타입 (float, int, Vector2, Color 등)
+        public string propertyName;
+        public Type valueType;
+        public DataType dataType;
+        public InterpolationType interpolationType = InterpolationType.Linear;
         public List<Keyframe> keyframes = new List<Keyframe>();
 
-        public AnimatedProperty(string propertyName, Type valueType)
+        public AnimatedProperty(string propertyName, Type valueType, DataType dataType)
         {
             this.propertyName = propertyName;
             this.valueType = valueType;
+            this.dataType = dataType;
         }
 
-        /// <summary>
-        /// 키프레임 추가 (시간 순서대로 정렬됨)
-        /// </summary>
+        public AnimatedProperty(string propertyName, Type valueType, DataType dataType, InterpolationType interpolationType)
+        {
+            this.propertyName = propertyName;
+            this.valueType = valueType;
+            this.dataType = dataType;
+            this.interpolationType = interpolationType;
+        }
+
         public void AddKeyframe(Keyframe keyframe)
         {
+            if (keyframe.interpolation == InterpolationType.Linear)
+            {
+                keyframe.interpolation = interpolationType;
+            }
             keyframes.Add(keyframe);
             keyframes = keyframes.OrderBy(k => k.time).ToList();
         }
 
-        /// <summary>
-        /// 키프레임 제거
-        /// </summary>
         public void RemoveKeyframe(Keyframe keyframe)
         {
             keyframes.Remove(keyframe);
         }
 
-        /// <summary>
-        /// 특정 시간의 키프레임 찾기
-        /// </summary>
         public Keyframe GetKeyframeAtTime(float time, float tolerance = 0.01f)
         {
             return keyframes.FirstOrDefault(k => Mathf.Abs(k.time - time) < tolerance);
         }
 
-        /// <summary>
-        /// 주어진 시간에서의 값을 보간하여 반환
-        /// </summary>
         public object Evaluate(float time)
         {
             if (keyframes.Count == 0)
@@ -77,9 +95,6 @@ namespace VFXComposer.Core.Animation
             return keyframes[keyframes.Count - 1].value;
         }
 
-        /// <summary>
-        /// 두 키프레임 사이의 값 보간
-        /// </summary>
         private object Interpolate(Keyframe from, Keyframe to, float time)
         {
             float duration = to.time - from.time;
@@ -118,9 +133,6 @@ namespace VFXComposer.Core.Animation
             return from.value;
         }
 
-        /// <summary>
-        /// 보간 타입에 따른 커브 적용
-        /// </summary>
         private float ApplyInterpolationCurve(float t, InterpolationType interpolation)
         {
             switch (interpolation)
@@ -143,7 +155,6 @@ namespace VFXComposer.Core.Animation
                         : 1f - Mathf.Pow(-2f * t + 2f, 2f) / 2f;
 
                 case InterpolationType.Bezier:
-                    // TODO: 베지어 곡선 구현
                     return t;
 
                 default:
@@ -151,9 +162,6 @@ namespace VFXComposer.Core.Animation
             }
         }
 
-        /// <summary>
-        /// 기본값 반환
-        /// </summary>
         private object GetDefaultValue()
         {
             if (valueType == typeof(float)) return 0f;
@@ -165,9 +173,16 @@ namespace VFXComposer.Core.Animation
             return null;
         }
 
-        /// <summary>
-        /// 키프레임이 있는지 확인
-        /// </summary>
         public bool HasKeyframes => keyframes.Count > 0;
+    }
+
+    public enum DataType
+    {
+        Float,
+        Int,
+        Vector2,
+        Vector3,
+        Color,
+        Bool
     }
 }

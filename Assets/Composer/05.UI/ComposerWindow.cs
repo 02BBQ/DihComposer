@@ -3,6 +3,7 @@ using UnityEngine.UIElements;
 using VFXComposer.Core;
 using VFXComposer.Core.Animation;
 using VFXComposer.UI;
+using System.IO;
 
 public class ComposerWindow : MonoBehaviour
 {
@@ -16,9 +17,9 @@ public class ComposerWindow : MonoBehaviour
     private TimelineController timelineController;
     private TimelineView timelineView;
 
-    // Toolbar buttons
     private Button undoButton;
     private Button redoButton;
+    private string currentProjectPath = "";
     
     void Start()
     {
@@ -65,10 +66,6 @@ public class ComposerWindow : MonoBehaviour
         mainContainer.style.height = Length.Percent(100);
         rootVisualElement.Add(mainContainer);
 
-        // Toolbar at the top
-        var toolbar = CreateToolbar();
-        mainContainer.Add(toolbar);
-
         // Middle section: Graph + Inspector
         var horizontalContainer = new VisualElement();
         horizontalContainer.style.flexDirection = FlexDirection.Row;
@@ -87,6 +84,10 @@ public class ComposerWindow : MonoBehaviour
 
         graphView.SetInspector(inspector);
 
+        // Toolbar at the top
+        var toolbar = CreateToolbar();
+        mainContainer.Add(toolbar);
+        
         // Timeline view at the bottom
         timelineView = new TimelineView(timelineController);
         mainContainer.Add(timelineView);
@@ -121,7 +122,18 @@ public class ComposerWindow : MonoBehaviour
         var toolbar = new VisualElement();
         toolbar.AddToClassList("main-toolbar");
 
-        // Add Node 버튼
+        var saveButton = new Button(OnSaveProject);
+        saveButton.text = "💾 Save";
+        saveButton.AddToClassList("toolbar-button");
+        saveButton.AddToClassList("toolbar-button--save");
+        toolbar.Add(saveButton);
+
+        var loadButton = new Button(OnLoadProject);
+        loadButton.text = "📂 Load";
+        loadButton.AddToClassList("toolbar-button");
+        loadButton.AddToClassList("toolbar-button--load");
+        toolbar.Add(loadButton);
+
         var addNodeButton = new Button(() =>
         {
             if (graphView != null)
@@ -134,21 +146,18 @@ public class ComposerWindow : MonoBehaviour
         addNodeButton.AddToClassList("toolbar-button--add-node");
         toolbar.Add(addNodeButton);
 
-        // Undo button
         undoButton = new Button(() => graphView?.Undo());
         undoButton.text = "↶ Undo";
         undoButton.AddToClassList("toolbar-button");
         undoButton.AddToClassList("toolbar-button--undo");
         toolbar.Add(undoButton);
 
-        // Redo button
         redoButton = new Button(() => graphView?.Redo());
         redoButton.text = "↷ Redo";
         redoButton.AddToClassList("toolbar-button");
         redoButton.AddToClassList("toolbar-button--redo");
         toolbar.Add(redoButton);
 
-        // Info label
         var infoLabel = new Label("VFX Composer - Mobile Edition");
         infoLabel.AddToClassList("toolbar-info");
         toolbar.Add(infoLabel);
@@ -231,6 +240,68 @@ public class ComposerWindow : MonoBehaviour
         {
             var executor = new NodeExecutor(graph);
             executor.Execute();
+        }
+    }
+
+    void OnSaveProject()
+    {
+        if (graph == null || timelineController == null)
+        {
+            Debug.LogWarning("[ComposerWindow] Cannot save: graph or timeline is null");
+            return;
+        }
+
+        try
+        {
+            string fileName = string.IsNullOrEmpty(currentProjectPath)
+                ? $"VFXProject_{System.DateTime.Now:yyyyMMdd_HHmmss}.vfxc"
+                : Path.GetFileName(currentProjectPath);
+
+            string savedPath = ProjectManager.SaveProject(fileName, graph, timelineController);
+            currentProjectPath = savedPath;
+
+            Debug.Log($"[ComposerWindow] Project saved successfully: {savedPath}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[ComposerWindow] Save failed: {e.Message}");
+        }
+    }
+
+    void OnLoadProject()
+    {
+        try
+        {
+            string persistentPath = Application.persistentDataPath;
+            string[] files = Directory.GetFiles(persistentPath, "*.vfxc");
+
+            if (files.Length == 0)
+            {
+                Debug.LogWarning("[ComposerWindow] No .vfxc files found");
+                return;
+            }
+
+            string filePath = files[files.Length - 1];
+
+            var projectData = ProjectManager.LoadProject(filePath);
+            if (projectData == null)
+            {
+                Debug.LogError("[ComposerWindow] Failed to load project");
+                return;
+            }
+
+            graph = ProjectManager.DeserializeGraph(projectData.graphData);
+            graphView.SetGraph(graph);
+
+            ProjectManager.RestoreTimeline(timelineController, projectData.timelineData);
+
+            currentProjectPath = filePath;
+
+            Debug.Log($"[ComposerWindow] Project loaded successfully: {filePath}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[ComposerWindow] Load failed: {e.Message}");
         }
     }
 }

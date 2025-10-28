@@ -90,24 +90,71 @@ namespace VFXComposer.Core.Animation
 
         public void AddKeyframe(Node node, string propertyName, object value)
         {
+            DataType dataType = GetDataTypeFromValue(value);
+            AddKeyframe(node, propertyName, value, dataType, InterpolationType.Linear);
+        }
+
+        public void AddKeyframe(string propertyKey, float time, object value, DataType dataType, InterpolationType interpolationType)
+        {
+            if (!animatedProperties.TryGetValue(propertyKey, out var animProp))
+            {
+                Type valueType = GetTypeFromDataType(dataType);
+                animProp = new AnimatedProperty(propertyKey.Split('.')[1], valueType, dataType, interpolationType);
+                animatedProperties[propertyKey] = animProp;
+                Debug.Log($"[Timeline] Created new AnimatedProperty: {propertyKey}");
+            }
+
+            var keyframe = new Keyframe(time, value, interpolationType);
+            animProp.AddKeyframe(keyframe);
+
+            Debug.Log($"[Timeline] Added keyframe: {propertyKey} = {value} at {time:F2}s");
+
+            OnKeyframeAdded?.Invoke();
+        }
+
+        private void AddKeyframe(Node node, string propertyName, object value, DataType dataType, InterpolationType interpolationType)
+        {
             string key = GetPropertyKey(node, propertyName);
 
             if (!animatedProperties.TryGetValue(key, out var animProp))
             {
-                // 새 AnimatedProperty 생성
                 Type valueType = value.GetType();
-                animProp = new AnimatedProperty(propertyName, valueType);
+                animProp = new AnimatedProperty(propertyName, valueType, dataType, interpolationType);
                 animatedProperties[key] = animProp;
                 Debug.Log($"[Timeline] Created new AnimatedProperty: {key}");
             }
 
-            // 현재 시간에 키프레임 추가
-            var keyframe = new Keyframe(currentTime, value);
+            var keyframe = new Keyframe(currentTime, value, interpolationType);
             animProp.AddKeyframe(keyframe);
 
             Debug.Log($"[Timeline] Added keyframe: {key} = {value} at {currentTime:F2}s (frame {CurrentFrame})");
 
             OnKeyframeAdded?.Invoke();
+        }
+
+        private DataType GetDataTypeFromValue(object value)
+        {
+            if (value is float) return DataType.Float;
+            if (value is int) return DataType.Int;
+            if (value is Vector2) return DataType.Vector2;
+            if (value is Vector3) return DataType.Vector3;
+            if (value is Color) return DataType.Color;
+            if (value is bool) return DataType.Bool;
+            return DataType.Float;
+        }
+
+        private Type GetTypeFromDataType(DataType dataType)
+        {
+            switch (dataType)
+            {
+                case DataType.Float: return typeof(float);
+                case DataType.Int: return typeof(int);
+                case DataType.Vector2: return typeof(Vector2);
+                case DataType.Vector3: return typeof(Vector3);
+                case DataType.Color: return typeof(Color);
+                case DataType.Bool: return typeof(bool);
+                default: return typeof(float);
+            }
         }
 
         public void RemoveKeyframe(Node node, string propertyName, float time)

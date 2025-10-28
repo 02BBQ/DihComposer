@@ -82,8 +82,9 @@ namespace VFXComposer.UI
             previewImage.scaleMode = ScaleMode.ScaleToFit;
             propertiesContainer.Add(previewImage);
 
-            // 🎉 Attribute 기반 자동 Inspector 생성 (키프레임 지원)
-            var builder = new InspectorBuilder(propertiesContainer, node, () => ExecuteNode(node), timelineController);
+            // 🎉 Attribute 기반 자동 Inspector 생성 (키프레임 + Undo/Redo 지원)
+            var commandHistory = graphView?.GetCommandHistory();
+            var builder = new InspectorBuilder(propertiesContainer, node, () => ExecuteNode(node), timelineController, commandHistory);
             builder.Build();
 
             // OutputNode의 경우 추가 정보 표시

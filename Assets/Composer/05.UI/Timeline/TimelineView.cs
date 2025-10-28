@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using VFXComposer.Core.Animation;
 using System;
+using System.Collections.Generic;
 
 namespace VFXComposer.UI
 {
@@ -20,12 +21,19 @@ namespace VFXComposer.UI
         private Label timeLabel;
 
         private VisualElement timeRuler;
+        private VisualElement timeRulerCanvas; // 눈금 그리기용
+        private VisualElement timeRulerLabels; // 텍스트 레이블용
         private VisualElement playhead;
         private VisualElement trackList;
 
         private float pixelsPerSecond = 100f; // 1초당 픽셀 수 (줌 레벨)
         private float scrollOffset = 0f;
         private bool isScrubbing = false; // 타임라인 드래그 중인지
+
+        // Touch gesture variables
+        private Dictionary<int, Vector2> activeTouches = new Dictionary<int, Vector2>();
+        private float lastPinchDistance = 0f;
+        private bool isPinching = false;
 
         public TimelineView(TimelineController controller)
         {
@@ -88,24 +96,82 @@ namespace VFXComposer.UI
             timeLabel.AddToClassList("timeline-time-label");
             toolbar.Add(timeLabel);
 
-            // FPS 표시
-            var fpsLabel = new Label($"{controller.fps} fps");
+            // FPS 설정 버튼들
+            var fpsContainer = new VisualElement();
+            fpsContainer.style.flexDirection = FlexDirection.Row;
+            fpsContainer.style.alignItems = Align.Center;
+            toolbar.Add(fpsContainer);
+
+            var fpsLabel = new Label("FPS:");
             fpsLabel.AddToClassList("timeline-fps-label");
-            toolbar.Add(fpsLabel);
+            fpsContainer.Add(fpsLabel);
+
+            // FPS 프리셋 버튼
+            var fps24Button = new Button(() => SetFPS(24));
+            fps24Button.text = "24";
+            fps24Button.AddToClassList("timeline-button");
+            fps24Button.AddToClassList("timeline-button--fps");
+            fpsContainer.Add(fps24Button);
+
+            var fps30Button = new Button(() => SetFPS(30));
+            fps30Button.text = "30";
+            fps30Button.AddToClassList("timeline-button");
+            fps30Button.AddToClassList("timeline-button--fps");
+            fpsContainer.Add(fps30Button);
+
+            var fps60Button = new Button(() => SetFPS(60));
+            fps60Button.text = "60";
+            fps60Button.AddToClassList("timeline-button");
+            fps60Button.AddToClassList("timeline-button--fps");
+            fpsContainer.Add(fps60Button);
+
+            var fpsValueLabel = new Label($"{controller.fps}");
+            fpsValueLabel.AddToClassList("timeline-fps-value");
+            fpsValueLabel.style.minWidth = 30;
+            fpsValueLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            fpsContainer.Add(fpsValueLabel);
+
+            // FPS 값 레이블 업데이트를 위한 참조 저장
+            controller.OnTimeChanged += (time) =>
+            {
+                fpsValueLabel.text = $"{controller.fps}";
+            };
         }
 
         private void CreateTimeRuler()
         {
             timeRuler = new VisualElement();
             timeRuler.AddToClassList("timeline-ruler");
-            timeRuler.generateVisualContent += DrawTimeRuler;
             Add(timeRuler);
+
+            // Canvas for drawing ruler lines
+            timeRulerCanvas = new VisualElement();
+            timeRulerCanvas.style.position = Position.Absolute;
+            timeRulerCanvas.style.width = Length.Percent(100);
+            timeRulerCanvas.style.height = Length.Percent(100);
+            timeRulerCanvas.generateVisualContent += DrawTimeRuler;
+            timeRulerCanvas.pickingMode = PickingMode.Ignore;
+            timeRuler.Add(timeRulerCanvas);
+
+            // Container for text labels
+            timeRulerLabels = new VisualElement();
+            timeRulerLabels.style.position = Position.Absolute;
+            timeRulerLabels.style.width = Length.Percent(100);
+            timeRulerLabels.style.height = Length.Percent(100);
+            timeRulerLabels.pickingMode = PickingMode.Ignore;
+            timeRuler.Add(timeRulerLabels);
 
             // 포인터 이벤트로 스크럽 (드래그로 시간 이동)
             timeRuler.RegisterCallback<PointerDownEvent>(OnTimeRulerPointerDown);
             timeRuler.RegisterCallback<PointerMoveEvent>(OnTimeRulerPointerMove);
             timeRuler.RegisterCallback<PointerUpEvent>(OnTimeRulerPointerUp);
-            timeRuler.RegisterCallback<PointerLeaveEvent>(OnTimeRulerPointerLeave);
+            timeRuler.RegisterCallback<PointerCancelEvent>(OnTimeRulerPointerCancel);
+
+            // 휠 이벤트로 줌
+            timeRuler.RegisterCallback<WheelEvent>(OnTimeRulerWheel);
+
+            // 눈금 업데이트 스케줄러
+            schedule.Execute(UpdateRulerLabels).Every(100);
         }
 
         private void CreateTrackList()
@@ -115,8 +181,8 @@ namespace VFXComposer.UI
             trackList.generateVisualContent += DrawTracks;
             Add(trackList);
 
-            // 키프레임 클릭 감지
-            trackList.RegisterCallback<MouseDownEvent>(OnTrackListClick);
+            // 키프레임 클릭 감지 (PointerDownEvent로 변경하여 터치 지원)
+            trackList.RegisterCallback<PointerDownEvent>(OnTrackListClick);
         }
 
         private void CreatePlayhead()
@@ -130,27 +196,99 @@ namespace VFXComposer.UI
         private void DrawTimeRuler(MeshGenerationContext ctx)
         {
             var painter = ctx.painter2D;
-            painter.lineWidth = 1f;
-            painter.strokeColor = new Color(0.5f, 0.5f, 0.5f);
+            float width = timeRulerCanvas.contentRect.width;
+            float height = timeRulerCanvas.contentRect.height;
+
+            // 배경
+            painter.fillColor = new Color(0.15f, 0.15f, 0.15f);
+            painter.BeginPath();
+            painter.MoveTo(Vector2.zero);
+            painter.LineTo(new Vector2(width, 0));
+            painter.LineTo(new Vector2(width, height));
+            painter.LineTo(new Vector2(0, height));
+            painter.ClosePath();
+            painter.Fill();
+
+            float frameDuration = 1f / controller.fps;
+            int totalFrames = Mathf.CeilToInt(controller.duration / frameDuration);
+
+            // 줌 레벨에 따라 눈금 간격 조정
+            // pixelsPerSecond가 작을수록 (축소) 간격을 넓게
+            int tickInterval = pixelsPerSecond > 200f ? 4 : (pixelsPerSecond > 100f ? 16 : 32);
+            Debug.Log(tickInterval);
+            Debug.Log(pixelsPerSecond);
+
+            // 눈금 표시
+            for (int frame = 0; frame <= totalFrames; frame += tickInterval)
+            {
+                float time = frame * frameDuration;
+                float x = time * pixelsPerSecond + scrollOffset;
+
+                if (x < 0 || x > width) continue;
+
+                bool isSecondMark = Mathf.Abs(time - Mathf.Round(time)) < 0.01f; // 초 단위 체크
+
+                // 세로 선 그리기
+                painter.lineWidth = isSecondMark ? 2f : 1f;
+                painter.strokeColor = isSecondMark ? new Color(0.7f, 0.7f, 0.7f) : new Color(0.4f, 0.4f, 0.4f);
+
+                painter.BeginPath();
+                painter.MoveTo(new Vector2(x, height - (isSecondMark ? 15 : 8)));
+                painter.LineTo(new Vector2(x, height));
+                painter.Stroke();
+            }
+        }
+
+        private void UpdateRulerLabels()
+        {
+            if (timeRulerLabels == null) return;
+
+            // 기존 레이블 모두 제거
+            timeRulerLabels.Clear();
 
             float width = timeRuler.contentRect.width;
             float height = timeRuler.contentRect.height;
 
-            // 초 단위로 눈금 그리기
-            int maxSeconds = Mathf.CeilToInt(controller.duration);
-            for (int i = 0; i <= maxSeconds; i++)
+            float frameDuration = 1f / controller.fps;
+            int totalFrames = Mathf.CeilToInt(controller.duration / frameDuration);
+
+            bool showFrameNumbers = pixelsPerSecond > 150f;
+
+            // 줌 레벨에 따라 레이블 간격 조정
+            int labelInterval = pixelsPerSecond > 150f ? 2 : (pixelsPerSecond > 75F ? 5 : 10);
+
+            // 레이블 추가
+            for (int frame = 0; frame <= totalFrames; frame += labelInterval)
             {
-                float x = i * pixelsPerSecond + scrollOffset;
-                if (x < 0 || x > width) continue;
+                float time = frame * frameDuration;
+                float x = time * pixelsPerSecond + scrollOffset;
 
-                // 세로 선
-                painter.BeginPath();
-                painter.MoveTo(new Vector2(x, height - 10));
-                painter.LineTo(new Vector2(x, height));
-                painter.Stroke();
+                if (x < -50 || x > width + 50) continue; // 화면 밖은 생성 안함
 
-                // 시간 텍스트는 추후 Label로 추가 가능
+                bool isSecondMark = Mathf.Abs(time - Mathf.Round(time)) < 0.01f;
+
+                // 축소 시에는 초 단위 레이블만 표시
+                if (!showFrameNumbers && !isSecondMark) continue;
+
+                var label = new Label(isSecondMark ? $"{Mathf.RoundToInt(time)}s" : $"{frame}");
+                label.style.position = Position.Absolute;
+                label.style.left = x - 15; // 중앙 정렬을 위해 약간 왼쪽으로
+                label.style.top = 2;
+                label.style.fontSize = isSecondMark ? 11 : 9;
+                label.style.color = isSecondMark ? new Color(0.9f, 0.9f, 0.9f) : new Color(0.6f, 0.6f, 0.6f);
+                label.style.unityTextAlign = TextAnchor.UpperCenter;
+                label.style.width = 30;
+
+                timeRulerLabels.Add(label);
             }
+        }
+
+        private void SetFPS(int newFps)
+        {
+            controller.fps = newFps;
+            timeRulerCanvas.MarkDirtyRepaint();
+            UpdateRulerLabels();
+            Debug.Log($"[Timeline] FPS set to {newFps}");
         }
 
         private void DrawTracks(MeshGenerationContext ctx)
@@ -195,12 +333,30 @@ namespace VFXComposer.UI
 
         private void OnTimeRulerPointerDown(PointerDownEvent evt)
         {
+            Debug.Log($"[TimelineView] OnTimeRulerPointerDown - button: {evt.button}, isPrimary: {evt.isPrimary}, pointerType: {evt.pointerType}");
+
+            // Track touches for mobile gestures
+            if (evt.pointerType != "mouse")
+            {
+                activeTouches[evt.pointerId] = evt.position;
+
+                // Check for pinch gesture (2 fingers)
+                if (activeTouches.Count == 2)
+                {
+                    Debug.Log("[TimelineView] Pinch gesture detected");
+                    isPinching = true;
+                    lastPinchDistance = GetPinchDistance();
+                    evt.StopPropagation();
+                    return;
+                }
+            }
+
             // 터치는 button이 -1일 수 있으므로 isPrimary 체크
             if (evt.button != 0 && evt.button != -1) return;
             if (!evt.isPrimary) return;
 
             isScrubbing = true;
-            timeRuler.CapturePointer(evt.pointerId);
+            // CapturePointer 제거 - 모바일에서 문제 발생
 
             // 클릭 위치를 시간으로 변환 (contentRect 내부로 제한)
             float x = Mathf.Clamp(evt.localPosition.x, 0, timeRuler.contentRect.width);
@@ -211,6 +367,32 @@ namespace VFXComposer.UI
 
         private void OnTimeRulerPointerMove(PointerMoveEvent evt)
         {
+            //Debug.Log($"[TimelineView] OnTimeRulerPointerMove - isScrubbing: {isScrubbing}, isPinching: {isPinching}");
+
+            // Update touch tracking
+            if (evt.pointerType != "mouse" && activeTouches.ContainsKey(evt.pointerId))
+            {
+                activeTouches[evt.pointerId] = evt.position;
+
+                if (isPinching && activeTouches.Count == 2)
+                {
+                    Debug.Log("[TimelineView] Pinch zooming");
+                    // Pinch to zoom
+                    float currentDistance = GetPinchDistance();
+                    float deltaDistance = currentDistance - lastPinchDistance;
+
+                    if (Mathf.Abs(deltaDistance) > 1f)
+                    {
+                        float zoomDelta = 1f + (deltaDistance * 0.01f); // 줌 민감도
+                        float newPixelsPerSecond = pixelsPerSecond * zoomDelta;
+                        SetZoom(newPixelsPerSecond);
+                        lastPinchDistance = currentDistance;
+                    }
+                    evt.StopPropagation();
+                    return;
+                }
+            }
+
             if (!isScrubbing) return;
 
             // 드래그 중 시간 업데이트 (contentRect 내부로 제한)
@@ -222,24 +404,44 @@ namespace VFXComposer.UI
 
         private void OnTimeRulerPointerUp(PointerUpEvent evt)
         {
+            Debug.Log($"[TimelineView] OnTimeRulerPointerUp - isPrimary: {evt.isPrimary}");
+
+            // Update touch tracking
+            if (evt.pointerType != "mouse")
+            {
+                activeTouches.Remove(evt.pointerId);
+
+                if (activeTouches.Count < 2)
+                {
+                    isPinching = false;
+                }
+            }
+
             if (!evt.isPrimary) return;
 
             if (isScrubbing)
             {
                 isScrubbing = false;
-                timeRuler.ReleasePointer(evt.pointerId);
+                // ReleasePointer 제거 - CapturePointer를 사용하지 않음
             }
 
             evt.StopPropagation();
         }
 
-        private void OnTimeRulerPointerLeave(PointerLeaveEvent evt)
+        private void OnTimeRulerPointerCancel(PointerCancelEvent evt)
         {
-            if (isScrubbing)
+            Debug.Log("[TimelineView] OnTimeRulerPointerCancel");
+
+            if (evt.pointerType != "mouse")
             {
-                isScrubbing = false;
-                timeRuler.ReleasePointer(evt.pointerId);
+                activeTouches.Remove(evt.pointerId);
+                if (activeTouches.Count < 2)
+                {
+                    isPinching = false;
+                }
             }
+
+            isScrubbing = false;
         }
 
         private void UpdateTimeFromPosition(float x)
@@ -252,9 +454,10 @@ namespace VFXComposer.UI
             controller.SetFrame(frame);
         }
 
-        private void OnTrackListClick(MouseDownEvent evt)
+        private void OnTrackListClick(PointerDownEvent evt)
         {
             // TODO: 키프레임 선택/편집
+            // 터치 지원을 위해 MouseDownEvent에서 PointerDownEvent로 변경
         }
 
         private void OnTimeChanged(float time)
@@ -284,14 +487,36 @@ namespace VFXComposer.UI
             trackList.MarkDirtyRepaint();
         }
 
+        private void OnTimeRulerWheel(WheelEvent evt)
+        {
+            Debug.Log($"[TimelineView] OnTimeRulerWheel - delta: {evt.delta.y}");
+
+            float delta = evt.delta.y;
+            float zoomDelta = delta > 0 ? 0.9f : 1.1f;
+
+            float newPixelsPerSecond = pixelsPerSecond * zoomDelta;
+            SetZoom(newPixelsPerSecond);
+
+            evt.StopPropagation();
+        }
+
+        private float GetPinchDistance()
+        {
+            if (activeTouches.Count < 2) return 0f;
+
+            var touchList = new List<Vector2>(activeTouches.Values);
+            return Vector2.Distance(touchList[0], touchList[1]);
+        }
+
         /// <summary>
         /// 줌 레벨 변경
         /// </summary>
         public void SetZoom(float pixelsPerSecond)
         {
             this.pixelsPerSecond = Mathf.Clamp(pixelsPerSecond, 20f, 500f);
-            timeRuler.MarkDirtyRepaint();
+            timeRulerCanvas.MarkDirtyRepaint();
             trackList.MarkDirtyRepaint();
+            UpdateRulerLabels(); // 레이블 즉시 업데이트
             OnTimeChanged(controller.currentTime); // Playhead 업데이트
         }
     }

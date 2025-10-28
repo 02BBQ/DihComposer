@@ -18,16 +18,18 @@ namespace VFXComposer.UI
         private Node targetNode;
         private Action onValueChanged;
         private TimelineController timelineController;
+        private CommandHistory commandHistory;
 
         // 성능 최적화를 위한 Type별 캐싱
         private static Dictionary<Type, List<InspectorFieldInfo>> fieldCache = new Dictionary<Type, List<InspectorFieldInfo>>();
 
-        public InspectorBuilder(VisualElement container, Node node, Action onValueChanged, TimelineController timeline = null)
+        public InspectorBuilder(VisualElement container, Node node, Action onValueChanged, TimelineController timeline = null, CommandHistory cmdHistory = null)
         {
             this.container = container;
             this.targetNode = node;
             this.onValueChanged = onValueChanged;
             this.timelineController = timeline;
+            this.commandHistory = cmdHistory;
         }
 
         /// <summary>
@@ -198,8 +200,7 @@ namespace VFXComposer.UI
             var enumField = new EnumField(fieldInfo.Label, (Enum)currentValue);
             enumField.RegisterValueChangedCallback(evt =>
             {
-                SetValue(fieldInfo.MemberInfo, evt.newValue);
-                onValueChanged?.Invoke();
+                SetValueWithCommand(fieldInfo.MemberInfo, evt.newValue);
             });
             enumField.AddToClassList("inspector__field");
             container.Add(enumField);
@@ -229,8 +230,7 @@ namespace VFXComposer.UI
                     }
                 }
 
-                SetValue(fieldInfo.MemberInfo, value);
-                onValueChanged?.Invoke();
+                SetValueWithCommand(fieldInfo.MemberInfo, value);
             });
             floatField.AddToClassList("inspector__field");
             fieldContainer.Add(floatField);
@@ -267,8 +267,7 @@ namespace VFXComposer.UI
                     }
                 }
 
-                SetValue(fieldInfo.MemberInfo, value);
-                onValueChanged?.Invoke();
+                SetValueWithCommand(fieldInfo.MemberInfo, value);
             });
             intField.AddToClassList("inspector__field");
             fieldContainer.Add(intField);
@@ -288,8 +287,7 @@ namespace VFXComposer.UI
             toggle.value = currentValue;
             toggle.RegisterValueChangedCallback(evt =>
             {
-                SetValue(fieldInfo.MemberInfo, evt.newValue);
-                onValueChanged?.Invoke();
+                SetValueWithCommand(fieldInfo.MemberInfo, evt.newValue);
             });
             toggle.AddToClassList("inspector__field");
             container.Add(toggle);
@@ -300,14 +298,12 @@ namespace VFXComposer.UI
             var mainContainer = new VisualElement();
             mainContainer.AddToClassList("inspector__field-container");
 
-            // 라벨과 키프레임 버튼을 위한 헤더 행
             var headerRow = new VisualElement();
-            headerRow.style.flexDirection = FlexDirection.Row;
-            headerRow.style.marginBottom = 4;
+            headerRow.AddToClassList("inspector__field-header");
             mainContainer.Add(headerRow);
 
             var label = new Label(fieldInfo.Label);
-            label.style.flexGrow = 1;
+            label.AddToClassList("inspector__field-label");
             headerRow.Add(label);
 
             if (timelineController != null)
@@ -316,19 +312,9 @@ namespace VFXComposer.UI
                 headerRow.Add(keyframeButton);
             }
 
-            // 색상 프리뷰 박스
             var colorPreview = new VisualElement();
-            colorPreview.style.height = 24;
-            colorPreview.style.marginBottom = 4;
+            colorPreview.AddToClassList("inspector__color-preview");
             colorPreview.style.backgroundColor = currentValue;
-            colorPreview.style.borderTopWidth = 1;
-            colorPreview.style.borderBottomWidth = 1;
-            colorPreview.style.borderLeftWidth = 1;
-            colorPreview.style.borderRightWidth = 1;
-            colorPreview.style.borderTopColor = new Color(0.3f, 0.3f, 0.3f);
-            colorPreview.style.borderBottomColor = new Color(0.3f, 0.3f, 0.3f);
-            colorPreview.style.borderLeftColor = new Color(0.3f, 0.3f, 0.3f);
-            colorPreview.style.borderRightColor = new Color(0.3f, 0.3f, 0.3f);
             mainContainer.Add(colorPreview);
 
             // RGB 슬라이더
@@ -336,36 +322,32 @@ namespace VFXComposer.UI
             {
                 Color newColor = (Color)GetValue(fieldInfo.MemberInfo);
                 newColor.r = value;
-                SetValue(fieldInfo.MemberInfo, newColor);
+                SetValueWithCommand(fieldInfo.MemberInfo, newColor);
                 colorPreview.style.backgroundColor = newColor;
-                onValueChanged?.Invoke();
             }, mainContainer);
 
             AddColorSlider("G", currentValue.g, (value) =>
             {
                 Color newColor = (Color)GetValue(fieldInfo.MemberInfo);
                 newColor.g = value;
-                SetValue(fieldInfo.MemberInfo, newColor);
+                SetValueWithCommand(fieldInfo.MemberInfo, newColor);
                 colorPreview.style.backgroundColor = newColor;
-                onValueChanged?.Invoke();
             }, mainContainer);
 
             AddColorSlider("B", currentValue.b, (value) =>
             {
                 Color newColor = (Color)GetValue(fieldInfo.MemberInfo);
                 newColor.b = value;
-                SetValue(fieldInfo.MemberInfo, newColor);
+                SetValueWithCommand(fieldInfo.MemberInfo, newColor);
                 colorPreview.style.backgroundColor = newColor;
-                onValueChanged?.Invoke();
             }, mainContainer);
 
             AddColorSlider("A", currentValue.a, (value) =>
             {
                 Color newColor = (Color)GetValue(fieldInfo.MemberInfo);
                 newColor.a = value;
-                SetValue(fieldInfo.MemberInfo, newColor);
+                SetValueWithCommand(fieldInfo.MemberInfo, newColor);
                 colorPreview.style.backgroundColor = newColor;
-                onValueChanged?.Invoke();
             }, mainContainer);
 
             container.Add(mainContainer);
@@ -374,25 +356,21 @@ namespace VFXComposer.UI
         private void AddColorSlider(string label, float initialValue, Action<float> onChanged, VisualElement parent)
         {
             var row = new VisualElement();
-            row.style.flexDirection = FlexDirection.Row;
-            row.style.alignItems = Align.Center;
-            row.style.marginBottom = 2;
+            row.AddToClassList("inspector__color-slider-row");
 
             var labelElement = new Label(label);
-            labelElement.style.width = 16;
-            labelElement.style.marginRight = 4;
+            labelElement.AddToClassList("inspector__color-slider-label");
             row.Add(labelElement);
 
             var slider = new Slider(0f, 1f);
             slider.value = initialValue;
-            slider.style.flexGrow = 1;
-            slider.style.marginRight = 4;
+            slider.AddToClassList("inspector__color-slider");
             slider.RegisterValueChangedCallback(evt => onChanged(evt.newValue));
             row.Add(slider);
 
             var field = new FloatField();
             field.value = initialValue;
-            field.style.width = 50;
+            field.AddToClassList("inspector__color-slider-field");
             field.formatString = "F2";
             field.RegisterValueChangedCallback(evt =>
             {
@@ -406,7 +384,6 @@ namespace VFXComposer.UI
             });
             row.Add(field);
 
-            // 슬라이더와 필드 동기화
             slider.RegisterValueChangedCallback(evt => field.SetValueWithoutNotify(evt.newValue));
 
             parent.Add(row);
@@ -423,8 +400,7 @@ namespace VFXComposer.UI
             vec2Field.style.flexGrow = 1;
             vec2Field.RegisterValueChangedCallback(evt =>
             {
-                SetValue(fieldInfo.MemberInfo, evt.newValue);
-                onValueChanged?.Invoke();
+                SetValueWithCommand(fieldInfo.MemberInfo, evt.newValue);
             });
             vec2Field.AddToClassList("inspector__field");
             fieldContainer.Add(vec2Field);
@@ -449,8 +425,7 @@ namespace VFXComposer.UI
             vec3Field.style.flexGrow = 1;
             vec3Field.RegisterValueChangedCallback(evt =>
             {
-                SetValue(fieldInfo.MemberInfo, evt.newValue);
-                onValueChanged?.Invoke();
+                SetValueWithCommand(fieldInfo.MemberInfo, evt.newValue);
             });
             vec3Field.AddToClassList("inspector__field");
             fieldContainer.Add(vec3Field);
@@ -470,8 +445,7 @@ namespace VFXComposer.UI
             textField.value = currentValue ?? "";
             textField.RegisterValueChangedCallback(evt =>
             {
-                SetValue(fieldInfo.MemberInfo, evt.newValue);
-                onValueChanged?.Invoke();
+                SetValueWithCommand(fieldInfo.MemberInfo, evt.newValue);
             });
             textField.AddToClassList("inspector__field");
             container.Add(textField);
@@ -491,10 +465,8 @@ namespace VFXComposer.UI
         {
             var button = new Button();
             button.text = "◆";
-            button.style.width = 32;
-            button.style.marginLeft = 4;
+            button.AddToClassList("inspector__keyframe-button");
 
-            // 초기 상태 설정
             UpdateKeyframeButtonState(button, fieldInfo);
 
             // 클릭 이벤트
@@ -534,27 +506,19 @@ namespace VFXComposer.UI
         {
             string propertyName = fieldInfo.MemberInfo.Name;
 
-            // 애니메이션되어 있는지 확인
             bool isAnimated = timelineController.IsPropertyAnimated(targetNode, propertyName);
-
-            // 현재 시간에 키프레임이 있는지 확인
             bool hasKeyframe = timelineController.HasKeyframeAtCurrentTime(targetNode, propertyName);
 
-            // 색상 업데이트
+            button.RemoveFromClassList("inspector__keyframe-button--active");
+            button.RemoveFromClassList("inspector__keyframe-button--animated");
+
             if (hasKeyframe)
             {
-                // 현재 시간에 키프레임이 있음 - 밝은 노란색
-                button.style.color = new Color(1f, 0.9f, 0.3f);
+                button.AddToClassList("inspector__keyframe-button--active");
             }
             else if (isAnimated)
             {
-                // 애니메이션되어 있지만 현재 시간에는 키프레임 없음 - 주황색
-                button.style.color = new Color(1f, 0.6f, 0.2f);
-            }
-            else
-            {
-                // 애니메이션 안됨 - 회색
-                button.style.color = new Color(0.5f, 0.5f, 0.5f);
+                button.AddToClassList("inspector__keyframe-button--animated");
             }
         }
 
@@ -583,6 +547,32 @@ namespace VFXComposer.UI
             {
                 prop.SetValue(targetNode, value);
             }
+        }
+
+        /// <summary>
+        /// Command pattern으로 값 변경 (Undo/Redo 지원)
+        /// </summary>
+        private void SetValueWithCommand(MemberInfo member, object newValue)
+        {
+            object oldValue = GetValue(member);
+
+            // CommandHistory가 없으면 직접 설정
+            if (commandHistory == null)
+            {
+                SetValue(member, newValue);
+                onValueChanged?.Invoke();
+                return;
+            }
+
+            // Command 패턴으로 실행
+            var command = new ChangePropertyCommand(
+                targetNode,
+                member,
+                oldValue,
+                newValue,
+                onValueChanged
+            );
+            commandHistory.ExecuteCommand(command);
         }
 
         /// <summary>

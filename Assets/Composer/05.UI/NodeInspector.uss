@@ -132,50 +132,140 @@
     -unity-font-style: bold;
 }
 
-.inspector__color-preview {
-    width: 40px;
-    height: 40px;
-    border-width: 2px;
-    border-color: rgb(80, 80, 80);
-    border-radius: 4px;
-}
-
-/* 컬러 슬라이더 */
-.inspector__color-slider {
-    margin-top: 6px;
+/* 필드 헤더 (라벨 + 키프레임 버튼) */
+.inspector__field-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 6px;
 }
 
-.inspector__color-slider .unity-base-slider__label {
-    color: rgb(255, 255, 255);
-    min-width: 20px;
+.inspector__field-label {
+    flex-grow: 1;
+    color: rgb(220, 220, 220);
+    font-size: 12px;
     -unity-font-style: bold;
+}
+
+/* 컬러 프리뷰 (새로운 스타일) */
+.inspector__color-preview {
+    height: 32px;
+    margin-bottom: 8px;
+    border-width: 2px;
+    border-color: rgb(80, 80, 80);
+    border-radius: 6px;
+    transition-duration: 0.2s;
+}
+
+.inspector__color-preview:hover {
+    border-color: rgb(100, 150, 255);
+}
+
+/* 키프레임 버튼 */
+.inspector__keyframe-button {
+    width: 28px;
+    height: 22px;
+    margin-left: 6px;
+    background-color: rgb(50, 50, 50);
+    border-color: rgb(80, 80, 80);
+    border-width: 2px;
+    border-radius: 4px;
+    color: rgb(150, 150, 150);
+    font-size: 14px;
+    padding: 0;
+    -unity-text-align: middle-center;
+}
+
+.inspector__keyframe-button:hover {
+    background-color: rgb(60, 60, 60);
+    border-color: rgb(100, 150, 255);
+}
+
+.inspector__keyframe-button:active {
+    background-color: rgb(40, 40, 40);
+}
+
+/* 키프레임이 있을 때 (현재 시간) */
+.inspector__keyframe-button--active {
+    background-color: rgb(255, 200, 60);
+    border-color: rgb(255, 220, 100);
+    color: rgb(40, 40, 40);
+}
+
+.inspector__keyframe-button--active:hover {
+    background-color: rgb(255, 220, 100);
+}
+
+/* 애니메이션되어 있지만 현재 시간엔 키프레임 없을 때 */
+.inspector__keyframe-button--animated {
+    background-color: rgb(255, 120, 60);
+    border-color: rgb(255, 140, 80);
+    color: rgb(255, 255, 255);
+}
+
+.inspector__keyframe-button--animated:hover {
+    background-color: rgb(255, 140, 80);
+}
+
+/* 컬러 슬라이더 행 */
+.inspector__color-slider-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.inspector__color-slider-label {
+    width: 20px;
+    margin-right: 8px;
+    color: rgb(220, 220, 220);
+    font-size: 12px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.inspector__color-slider {
+    flex-grow: 1;
+    margin-right: 8px;
 }
 
 .inspector__color-slider .unity-base-slider__tracker {
     background-color: rgb(60, 60, 60);
+    border-radius: 3px;
+    height: 6px;
 }
 
 .inspector__color-slider .unity-base-slider__dragger {
-    background-color: rgb(255, 255, 255);
-}
-
-/* R/G/B/A 슬라이더 색상 */
-.inspector__r-slider .unity-base-slider__dragger {
-    background-color: rgb(255, 80, 80);
-}
-
-.inspector__g-slider .unity-base-slider__dragger {
-    background-color: rgb(80, 255, 80);
-}
-
-.inspector__b-slider .unity-base-slider__dragger {
-    background-color: rgb(80, 80, 255);
-}
-
-.inspector__a-slider .unity-base-slider__dragger {
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
     background-color: rgb(200, 200, 200);
+    border-width: 2px;
+    border-color: rgb(80, 80, 80);
 }
+
+.inspector__color-slider .unity-base-slider__dragger:hover {
+    border-color: rgb(100, 150, 255);
+    scale: 1.1;
+}
+
+.inspector__color-slider-field {
+    width: 55px;
+}
+
+.inspector__color-slider-field .unity-base-field__input {
+    background-color: rgb(30, 30, 30);
+    border-color: rgb(60, 60, 60);
+    border-width: 1px;
+    border-radius: 4px;
+    color: rgb(255, 255, 255);
+    padding: 4px;
+    font-size: 11px;
+}
+
+.inspector__color-slider-field .unity-base-field__input:focus {
+    border-color: rgb(100, 150, 255);
+}
+
 
 /* Info */
 .inspector__info {

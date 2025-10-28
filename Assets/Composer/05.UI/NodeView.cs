@@ -26,29 +26,32 @@ namespace VFXComposer.UI
         public NodeView(Node node)
         {
             this.node = node;
-            
+
             AddToClassList("node");
-            
+
             headerLabel = new Label(node.nodeName);
             headerLabel.AddToClassList("node__header");
+            headerLabel.pickingMode = PickingMode.Ignore; // 드래그가 제대로 작동하도록
             Add(headerLabel);
-            
+
             var previewImage = new Image();
             previewImage.AddToClassList("node__preview");
             previewImage.scaleMode = ScaleMode.ScaleToFit;
+            previewImage.pickingMode = PickingMode.Ignore; // 드래그가 제대로 작동하도록
             Add(previewImage);
-            
+
             slotsContainer = new VisualElement();
             slotsContainer.AddToClassList("node__slots");
+            slotsContainer.pickingMode = PickingMode.Ignore; // 드래그가 제대로 작동하도록
             Add(slotsContainer);
-            
+
             BuildSlots();
-            
+
             RegisterCallback<PointerDownEvent>(OnPointerDown);
             RegisterCallback<PointerMoveEvent>(OnPointerMove);
             RegisterCallback<PointerUpEvent>(OnPointerUp);
             RegisterCallback<PointerLeaveEvent>(OnPointerLeave);
-            
+
             schedule.Execute(() => UpdatePreview(previewImage)).Every(100);
         }
         
@@ -174,14 +177,13 @@ namespace VFXComposer.UI
         
         private void OnPointerDown(PointerDownEvent evt)
         {
+            Debug.Log($"[NodeView {node.nodeName}] OnPointerDown - button: {evt.button}, isPrimary: {evt.isPrimary}, pointerType: {evt.pointerType}, target: {evt.target?.GetType().Name}, isSlotDragging: {isSlotDragging}");
+
             // 터치는 button이 -1일 수 있으므로 체크
             if ((evt.button == 0 || evt.button == -1) && evt.isPrimary && !isSlotDragging)
             {
+                Debug.Log($"[NodeView {node.nodeName}] ✓ Starting drag");
                 isDragging = true;
-                dragStartMousePos = evt.position;
-                dragStartNodePos = node.position;
-
-                this.CapturePointer(evt.pointerId);
 
                 BringToFront();
                 AddToClassList("node--selected");
@@ -190,47 +192,42 @@ namespace VFXComposer.UI
                 if (graphView != null)
                 {
                     graphView.SelectNode(this);
+                    // Delegate drag handling to NodeGraphView for mobile compatibility
+                    graphView.StartNodeDrag(this, evt.position);
                 }
 
                 evt.StopPropagation();
+            }
+            else
+            {
+                Debug.Log($"[NodeView {node.nodeName}] ✗ Drag rejected");
             }
         }
 
         private void OnPointerMove(PointerMoveEvent evt)
         {
-            if (isDragging && !isSlotDragging)
-            {
-                Vector2 delta = (Vector2)evt.position - dragStartMousePos;
-
-                // Get zoom scale from graph view
-                var graphView = GetFirstAncestorOfType<NodeGraphView>();
-                if (graphView != null)
-                {
-                    delta /= graphView.ZoomScale;
-                }
-
-                node.position = dragStartNodePos + delta;
-                style.left = node.position.x;
-                style.top = node.position.y;
-
-                evt.StopPropagation();
-            }
+            // Node dragging is now handled at NodeGraphView level for mobile compatibility
+            // This allows proper touch event handling without CapturePointer issues
+            Debug.Log($"[NodeView {node.nodeName}] OnPointerMove - isDragging: {isDragging}");
         }
 
         private void OnPointerUp(PointerUpEvent evt)
         {
+            Debug.Log($"[NodeView {node.nodeName}] OnPointerUp - button: {evt.button}, isDragging: {isDragging}");
+
             // 터치는 button이 -1일 수 있으므로 체크
             if ((evt.button == 0 || evt.button == -1) && evt.isPrimary)
             {
                 if (isDragging)
                 {
                     isDragging = false;
-                    this.ReleasePointer(evt.pointerId);
+                    Debug.Log($"[NodeView {node.nodeName}] Drag ended");
                 }
 
                 isSlotDragging = false;
 
-                evt.StopPropagation();
+                // StopPropagation 제거! NodeGraphView가 draggingNodeView를 null로 만들어야 함
+                // evt.StopPropagation();
             }
         }
         
@@ -320,12 +317,8 @@ namespace VFXComposer.UI
         
         private void OnPointerLeave(PointerLeaveEvent evt)
         {
-            if (isDragging)
-            {
-                isDragging = false;
-                this.ReleasePointer(evt.pointerId);
-            }
-
+            // Dragging continues even when pointer leaves the node
+            // NodeGraphView handles the drag tracking now
             isSlotDragging = false;
         }
     }
