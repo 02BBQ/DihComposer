@@ -59,6 +59,9 @@ public class ComposerWindow : MonoBehaviour
             rootVisualElement.styleSheets.Add(inspectorStyleSheet);
         }
 
+        // Initialize FilePicker with root element
+        FilePicker.Initialize(rootVisualElement);
+
         // Main container (vertical layout)
         var mainContainer = new VisualElement();
         mainContainer.style.flexDirection = FlexDirection.Column;
@@ -270,19 +273,13 @@ public class ComposerWindow : MonoBehaviour
 
     void OnLoadProject()
     {
+        FilePicker.PickFile(".vfxc", OnFileSelected, OnFileCancelled);
+    }
+
+    void OnFileSelected(string filePath)
+    {
         try
         {
-            string persistentPath = Application.persistentDataPath;
-            string[] files = Directory.GetFiles(persistentPath, "*.vfxc");
-
-            if (files.Length == 0)
-            {
-                Debug.LogWarning("[ComposerWindow] No .vfxc files found");
-                return;
-            }
-
-            string filePath = files[files.Length - 1];
-
             var projectData = ProjectManager.LoadProject(filePath);
             if (projectData == null)
             {
@@ -303,5 +300,10 @@ public class ComposerWindow : MonoBehaviour
         {
             Debug.LogError($"[ComposerWindow] Load failed: {e.Message}");
         }
+    }
+
+    void OnFileCancelled()
+    {
+        Debug.Log("[ComposerWindow] File selection cancelled");
     }
 }

@@ -1,14 +1,14 @@
+using System.Collections.Generic;
+
 namespace VFXComposer.Core
 {
-    /// <summary>
-    /// 슬롯 연결 해제 Command
-    /// </summary>
     public class DisconnectSlotsCommand : ICommand
     {
         private NodeGraph graph;
         private NodeSlot outputSlot;
         private NodeSlot inputSlot;
         private NodeConnection connection;
+        private readonly HashSet<Node> downstreamNodes;
 
         public DisconnectSlotsCommand(NodeGraph graph, NodeSlot outputSlot, NodeSlot inputSlot)
         {
@@ -16,7 +16,6 @@ namespace VFXComposer.Core
             this.outputSlot = outputSlot;
             this.inputSlot = inputSlot;
 
-            // 연결을 찾아서 저장 (Undo를 위해)
             foreach (var conn in graph.connections)
             {
                 if (conn.outputSlot == outputSlot && conn.inputSlot == inputSlot)
@@ -25,6 +24,16 @@ namespace VFXComposer.Core
                     break;
                 }
             }
+
+            if (inputSlot != null && inputSlot.owner != null)
+            {
+                downstreamNodes = graph.GetDownstreamNodes(inputSlot.owner);
+                downstreamNodes.Add(inputSlot.owner);
+            }
+            else
+            {
+                downstreamNodes = new HashSet<Node>();
+            }
         }
 
         public void Execute()
@@ -32,6 +41,7 @@ namespace VFXComposer.Core
             if (connection != null)
             {
                 graph.DisconnectConnection(connection);
+                NodeGraphExecutionHelper.InvalidateAndExecuteDownstream(graph, downstreamNodes);
             }
         }
 
@@ -40,6 +50,7 @@ namespace VFXComposer.Core
             if (connection != null)
             {
                 graph.ConnectSlots(outputSlot, inputSlot);
+                NodeGraphExecutionHelper.InvalidateAndExecuteDownstream(graph, downstreamNodes);
             }
         }
 

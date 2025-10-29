@@ -1,17 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
 namespace VFXComposer.Core
 {
-    /// <summary>
-    /// 노드 삭제 Command
-    /// </summary>
     public class DeleteNodeCommand : ICommand
     {
         private NodeGraph graph;
         private Node node;
         private List<NodeConnection> savedConnections;
+        private readonly HashSet<Node> downstreamNodes;
         private System.Action<Node> onRemove;
         private System.Action<Node> onAdd;
 
@@ -22,17 +19,19 @@ namespace VFXComposer.Core
             this.onRemove = onRemove;
             this.onAdd = onAdd;
 
-            // 삭제 전에 연결 정보 저장
             savedConnections = graph.connections
                 .Where(c => (c.outputSlot != null && c.outputSlot.owner == node) ||
                            (c.inputSlot != null && c.inputSlot.owner == node))
                 .ToList();
+
+            downstreamNodes = graph.GetDownstreamNodes(node);
         }
 
         public void Execute()
         {
             graph.RemoveNode(node);
             onRemove?.Invoke(node);
+            NodeGraphExecutionHelper.InvalidateAndExecuteDownstream(graph, downstreamNodes);
         }
 
         public void Undo()
@@ -40,7 +39,6 @@ namespace VFXComposer.Core
             graph.AddNode(node);
             onAdd?.Invoke(node);
 
-            // 연결 복원
             foreach (var connection in savedConnections)
             {
                 if (connection.outputSlot != null && connection.inputSlot != null)
@@ -48,6 +46,8 @@ namespace VFXComposer.Core
                     graph.ConnectSlots(connection.outputSlot, connection.inputSlot);
                 }
             }
+
+            NodeGraphExecutionHelper.InvalidateAndExecuteDownstream(graph, downstreamNodes);
         }
 
         public string GetDescription()

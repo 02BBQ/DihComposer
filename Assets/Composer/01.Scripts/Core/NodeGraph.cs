@@ -9,23 +9,16 @@ namespace VFXComposer.Core
     /// </summary>
     public class NodeGraph
     {
-        // 그래프에 속한 모든 노드들
         public List<Node> nodes = new List<Node>();
-        
-        // 모든 연결들
         public List<NodeConnection> connections = new List<NodeConnection>();
-        
-        // 그래프 이름
         public string graphName = "New Graph";
-        
-        /// <summary>
-        /// 노드 추가
-        /// </summary>
+
+        private List<OutputNode> outputNodeCache = new List<OutputNode>();
+
         public void AddNode(Node node)
         {
             if (!nodes.Contains(node))
             {
-                // OutputNode는 하나만 존재해야 함
                 if (node is OutputNode && GetOutputNode() != null)
                 {
                     Debug.LogWarning("OutputNode already exists in the graph!");
@@ -33,33 +26,39 @@ namespace VFXComposer.Core
                 }
 
                 nodes.Add(node);
+
+                if (node is OutputNode outputNode)
+                {
+                    outputNodeCache.Add(outputNode);
+                }
             }
         }
 
-        /// <summary>
-        /// OutputNode 가져오기
-        /// </summary>
         public OutputNode GetOutputNode()
         {
             return nodes.OfType<OutputNode>().FirstOrDefault();
         }
+
+        public List<OutputNode> GetOutputNodes()
+        {
+            return outputNodeCache;
+        }
         
-        /// <summary>
-        /// 노드 제거
-        /// </summary>
         public void RemoveNode(Node node)
         {
-            // OutputNode는 삭제 불가능
             if (node is OutputNode)
             {
                 Debug.LogWarning("Cannot delete OutputNode!");
                 return;
             }
 
-            // 연결된 슬롯들 먼저 해제
             DisconnectNode(node);
-
             nodes.Remove(node);
+
+            if (node is OutputNode outputNode)
+            {
+                outputNodeCache.Remove(outputNode);
+            }
         }
         
         /// <summary>
@@ -169,39 +168,6 @@ namespace VFXComposer.Core
             }
         }
         
-        /// <summary>
-        /// 출력 노드들 찾기 (Output 슬롯이 다른 노드에 연결되지 않은 노드들)
-        /// </summary>
-        private List<Node> GetOutputNodes()
-        {
-            var outputNodes = new List<Node>();
-            
-            foreach (var node in nodes)
-            {
-                bool isOutputNode = true;
-                
-                // 이 노드의 출력이 다른 노드에 연결되어 있는지 확인
-                foreach (var outputSlot in node.outputSlots)
-                {
-                    if (connections.Any(c => c.outputSlot == outputSlot))
-                    {
-                        isOutputNode = false;
-                        break;
-                    }
-                }
-                
-                if (isOutputNode)
-                {
-                    outputNodes.Add(node);
-                }
-            }
-            
-            return outputNodes;
-        }
-        
-        /// <summary>
-        /// 순환 참조 검사 (Cycle Detection)
-        /// </summary>
         public bool HasCycle()
         {
             var visited = new HashSet<Node>();
@@ -254,14 +220,53 @@ namespace VFXComposer.Core
         {
             return nodes.FirstOrDefault(n => n.id == id);
         }
-        
+
         /// <summary>
-        /// 그래프 초기화
+        /// 특정 노드의 다운스트림 노드들을 재귀적으로 찾기
+        /// (이 노드의 output을 input으로 받는 노드들)
         /// </summary>
+        public HashSet<Node> GetDownstreamNodes(Node node)
+        {
+            var downstreamNodes = new HashSet<Node>();
+            GetDownstreamNodesRecursive(node, downstreamNodes);
+            return downstreamNodes;
+        }
+
+        private void GetDownstreamNodesRecursive(Node node, HashSet<Node> visited)
+        {
+            var downstreamConnections = connections.Where(c =>
+                c.outputSlot != null && c.outputSlot.owner == node
+            );
+
+            foreach (var connection in downstreamConnections)
+            {
+                if (connection.inputSlot != null && connection.inputSlot.owner != null)
+                {
+                    var downstreamNode = connection.inputSlot.owner;
+                    if (!visited.Contains(downstreamNode))
+                    {
+                        visited.Add(downstreamNode);
+                        GetDownstreamNodesRecursive(downstreamNode, visited);
+                    }
+                }
+            }
+        }
+
+        public void InvalidateDownstreamNodes(Node node)
+        {
+            var downstreamNodes = GetDownstreamNodes(node);
+
+            foreach (var downstream in downstreamNodes)
+            {
+                downstream.ResetExecution();
+            }
+        }
+
         public void Clear()
         {
             nodes.Clear();
             connections.Clear();
+            outputNodeCache.Clear();
         }
     }
 }

@@ -76,9 +76,6 @@ namespace VFXComposer.Core.Serialization
             }
         }
 
-        /// <summary>
-        /// Unity Engine 타입인지 확인 (직렬화 불가능한 타입들)
-        /// </summary>
         private static bool IsUnityEngineType(Type type)
         {
             // UnityEngine 네임스페이스 확인
@@ -88,7 +85,6 @@ namespace VFXComposer.Core.Serialization
                 if (type == typeof(Vector2) || type == typeof(Vector3) || type == typeof(Color))
                     return false;
 
-                // Texture, RenderTexture, Gradient, AnimationCurve 등은 직렬화 불가
                 if (typeof(UnityEngine.Object).IsAssignableFrom(type))
                     return true;
 
@@ -160,7 +156,7 @@ namespace VFXComposer.Core.Serialization
         /// </summary>
         private static Type FindTypeByName(string typeName)
         {
-            // FullName으로 검색 (예: VFXComposer.Core.GradientType)
+            // FullName 검색
             if (typeName.Contains("."))
             {
                 var assemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -171,7 +167,7 @@ namespace VFXComposer.Core.Serialization
                 }
             }
 
-            // Name만으로 검색
+            // Name 검색
             var allAssemblies = AppDomain.CurrentDomain.GetAssemblies();
             foreach (var assembly in allAssemblies)
             {
@@ -187,7 +183,6 @@ namespace VFXComposer.Core.Serialization
                         return t;
                 }
 
-                // 나머지 타입 검색
                 foreach (var t in types)
                 {
                     if (t.Name == typeName)

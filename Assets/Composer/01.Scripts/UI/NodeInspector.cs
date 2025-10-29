@@ -33,11 +33,16 @@ namespace VFXComposer.UI
             titleLabel.AddToClassList("inspector__title");
             titleContainer.Add(titleLabel);
 
-            // Properties container: 스크롤 가능하도록 설정
+            // ScrollView to handle overflow
+            var scrollView = new ScrollView(ScrollViewMode.Vertical);
+            scrollView.AddToClassList("inspector__scroll-view");
+            scrollView.style.flexGrow = 1;
+            Add(scrollView);
+
+            // Properties container inside ScrollView
             propertiesContainer = new VisualElement();
             propertiesContainer.AddToClassList("inspector__properties-container");
-            propertiesContainer.style.flexGrow = 1;
-            Add(propertiesContainer);
+            scrollView.Add(propertiesContainer);
 
             // Schedule preview updates
             schedule.Execute(UpdatePreview).Every(100);
@@ -82,9 +87,7 @@ namespace VFXComposer.UI
             previewImage.scaleMode = ScaleMode.ScaleToFit;
             propertiesContainer.Add(previewImage);
 
-            // 🎉 Attribute 기반 자동 Inspector 생성 (키프레임 + Undo/Redo 지원)
-            var commandHistory = graphView?.GetCommandHistory();
-            var builder = new InspectorBuilder(propertiesContainer, node, () => ExecuteNode(node), timelineController, commandHistory);
+            var builder = new InspectorBuilder(propertiesContainer, node, () => ExecuteNode(node), timelineController);
             builder.Build();
 
             // OutputNode의 경우 추가 정보 표시

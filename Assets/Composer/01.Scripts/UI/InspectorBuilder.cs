@@ -18,18 +18,15 @@ namespace VFXComposer.UI
         private Node targetNode;
         private Action onValueChanged;
         private TimelineController timelineController;
-        private CommandHistory commandHistory;
 
-        // 성능 최적화를 위한 Type별 캐싱
         private static Dictionary<Type, List<InspectorFieldInfo>> fieldCache = new Dictionary<Type, List<InspectorFieldInfo>>();
 
-        public InspectorBuilder(VisualElement container, Node node, Action onValueChanged, TimelineController timeline = null, CommandHistory cmdHistory = null)
+        public InspectorBuilder(VisualElement container, Node node, Action onValueChanged, TimelineController timeline = null)
         {
             this.container = container;
             this.targetNode = node;
             this.onValueChanged = onValueChanged;
             this.timelineController = timeline;
-            this.commandHistory = cmdHistory;
         }
 
         /// <summary>
@@ -200,7 +197,8 @@ namespace VFXComposer.UI
             var enumField = new EnumField(fieldInfo.Label, (Enum)currentValue);
             enumField.RegisterValueChangedCallback(evt =>
             {
-                SetValueWithCommand(fieldInfo.MemberInfo, evt.newValue);
+                SetValue(fieldInfo.MemberInfo, evt.newValue);
+                onValueChanged?.Invoke();
             });
             enumField.AddToClassList("inspector__field");
             container.Add(enumField);
@@ -219,7 +217,6 @@ namespace VFXComposer.UI
             floatField.style.flexGrow = 1;
             floatField.RegisterValueChangedCallback(evt =>
             {
-                // Range 속성이 있으면 Clamp 적용
                 float value = evt.newValue;
                 if (fieldInfo.RangeAttr != null)
                 {
@@ -230,10 +227,30 @@ namespace VFXComposer.UI
                     }
                 }
 
-                SetValueWithCommand(fieldInfo.MemberInfo, value);
+                SetValue(fieldInfo.MemberInfo, value);
+                onValueChanged?.Invoke();
             });
             floatField.AddToClassList("inspector__field");
             fieldContainer.Add(floatField);
+
+            // Label drag support for mobile/desktop
+            AddLabelDragSupport(floatField, fieldInfo, (delta) =>
+            {
+                float currentVal = (float)GetValue(fieldInfo.MemberInfo);
+                float sensitivity = fieldInfo.RangeAttr != null
+                    ? (fieldInfo.RangeAttr.Max - fieldInfo.RangeAttr.Min) * 0.01f
+                    : 0.1f;
+                float newValue = currentVal + delta * sensitivity;
+
+                if (fieldInfo.RangeAttr != null)
+                {
+                    newValue = Mathf.Clamp(newValue, fieldInfo.RangeAttr.Min, fieldInfo.RangeAttr.Max);
+                }
+
+                SetValue(fieldInfo.MemberInfo, newValue);
+                floatField.SetValueWithoutNotify(newValue);
+                onValueChanged?.Invoke();
+            });
 
             // 키프레임 버튼 추가 (타임라인이 있을 때만)
             if (timelineController != null)
@@ -256,7 +273,6 @@ namespace VFXComposer.UI
             intField.style.flexGrow = 1;
             intField.RegisterValueChangedCallback(evt =>
             {
-                // Range 속성이 있으면 Clamp 적용
                 int value = evt.newValue;
                 if (fieldInfo.RangeAttr != null)
                 {
@@ -267,10 +283,30 @@ namespace VFXComposer.UI
                     }
                 }
 
-                SetValueWithCommand(fieldInfo.MemberInfo, value);
+                SetValue(fieldInfo.MemberInfo, value);
+                onValueChanged?.Invoke();
             });
             intField.AddToClassList("inspector__field");
             fieldContainer.Add(intField);
+
+            // Label drag support for mobile/desktop
+            AddLabelDragSupport(intField, fieldInfo, (delta) =>
+            {
+                int currentVal = (int)GetValue(fieldInfo.MemberInfo);
+                float sensitivity = fieldInfo.RangeAttr != null
+                    ? (fieldInfo.RangeAttr.Max - fieldInfo.RangeAttr.Min) * 0.01f
+                    : 1f;
+                int newValue = currentVal + Mathf.RoundToInt(delta * sensitivity);
+
+                if (fieldInfo.RangeAttr != null)
+                {
+                    newValue = Mathf.Clamp(newValue, (int)fieldInfo.RangeAttr.Min, (int)fieldInfo.RangeAttr.Max);
+                }
+
+                SetValue(fieldInfo.MemberInfo, newValue);
+                intField.SetValueWithoutNotify(newValue);
+                onValueChanged?.Invoke();
+            });
 
             if (timelineController != null)
             {
@@ -287,7 +323,8 @@ namespace VFXComposer.UI
             toggle.value = currentValue;
             toggle.RegisterValueChangedCallback(evt =>
             {
-                SetValueWithCommand(fieldInfo.MemberInfo, evt.newValue);
+                SetValue(fieldInfo.MemberInfo, evt.newValue);
+                onValueChanged?.Invoke();
             });
             toggle.AddToClassList("inspector__field");
             container.Add(toggle);
@@ -317,37 +354,40 @@ namespace VFXComposer.UI
             colorPreview.style.backgroundColor = currentValue;
             mainContainer.Add(colorPreview);
 
-            // RGB 슬라이더
             AddColorSlider("R", currentValue.r, (value) =>
             {
                 Color newColor = (Color)GetValue(fieldInfo.MemberInfo);
                 newColor.r = value;
-                SetValueWithCommand(fieldInfo.MemberInfo, newColor);
+                SetValue(fieldInfo.MemberInfo, newColor);
                 colorPreview.style.backgroundColor = newColor;
+                onValueChanged?.Invoke();
             }, mainContainer);
 
             AddColorSlider("G", currentValue.g, (value) =>
             {
                 Color newColor = (Color)GetValue(fieldInfo.MemberInfo);
                 newColor.g = value;
-                SetValueWithCommand(fieldInfo.MemberInfo, newColor);
+                SetValue(fieldInfo.MemberInfo, newColor);
                 colorPreview.style.backgroundColor = newColor;
+                onValueChanged?.Invoke();
             }, mainContainer);
 
             AddColorSlider("B", currentValue.b, (value) =>
             {
                 Color newColor = (Color)GetValue(fieldInfo.MemberInfo);
                 newColor.b = value;
-                SetValueWithCommand(fieldInfo.MemberInfo, newColor);
+                SetValue(fieldInfo.MemberInfo, newColor);
                 colorPreview.style.backgroundColor = newColor;
+                onValueChanged?.Invoke();
             }, mainContainer);
 
             AddColorSlider("A", currentValue.a, (value) =>
             {
                 Color newColor = (Color)GetValue(fieldInfo.MemberInfo);
                 newColor.a = value;
-                SetValueWithCommand(fieldInfo.MemberInfo, newColor);
+                SetValue(fieldInfo.MemberInfo, newColor);
                 colorPreview.style.backgroundColor = newColor;
+                onValueChanged?.Invoke();
             }, mainContainer);
 
             container.Add(mainContainer);
@@ -400,7 +440,8 @@ namespace VFXComposer.UI
             vec2Field.style.flexGrow = 1;
             vec2Field.RegisterValueChangedCallback(evt =>
             {
-                SetValueWithCommand(fieldInfo.MemberInfo, evt.newValue);
+                SetValue(fieldInfo.MemberInfo, evt.newValue);
+                onValueChanged?.Invoke();
             });
             vec2Field.AddToClassList("inspector__field");
             fieldContainer.Add(vec2Field);
@@ -425,7 +466,8 @@ namespace VFXComposer.UI
             vec3Field.style.flexGrow = 1;
             vec3Field.RegisterValueChangedCallback(evt =>
             {
-                SetValueWithCommand(fieldInfo.MemberInfo, evt.newValue);
+                SetValue(fieldInfo.MemberInfo, evt.newValue);
+                onValueChanged?.Invoke();
             });
             vec3Field.AddToClassList("inspector__field");
             fieldContainer.Add(vec3Field);
@@ -445,7 +487,8 @@ namespace VFXComposer.UI
             textField.value = currentValue ?? "";
             textField.RegisterValueChangedCallback(evt =>
             {
-                SetValueWithCommand(fieldInfo.MemberInfo, evt.newValue);
+                SetValue(fieldInfo.MemberInfo, evt.newValue);
+                onValueChanged?.Invoke();
             });
             textField.AddToClassList("inspector__field");
             container.Add(textField);
@@ -522,6 +565,72 @@ namespace VFXComposer.UI
             }
         }
 
+        /// <summary>
+        /// Label drag support for scrubbing numeric values (works on mobile and desktop)
+        /// </summary>
+        private void AddLabelDragSupport(VisualElement field, InspectorFieldInfo fieldInfo, Action<float> onDrag)
+        {
+            // Find the label element (it's the first child in BaseField)
+            var label = field.Q<Label>();
+            if (label == null) return;
+
+            bool isDragging = false;
+            Vector2 lastPosition = Vector2.zero;
+            int activePointerId = -1;
+
+            label.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                if (isDragging) return;
+
+                isDragging = true;
+                activePointerId = evt.pointerId;
+                lastPosition = evt.position;
+                label.CapturePointer(evt.pointerId);
+                label.AddToClassList("inspector__label-dragging");
+                evt.StopPropagation();
+            });
+
+            label.RegisterCallback<PointerMoveEvent>(evt =>
+            {
+                if (!isDragging || evt.pointerId != activePointerId) return;
+
+                Vector2 delta = (Vector2)evt.position - lastPosition;
+                float dragAmount = delta.x;
+
+                if (Mathf.Abs(dragAmount) > 0.1f)
+                {
+                    onDrag(dragAmount);
+                    lastPosition = evt.position;
+                }
+
+                evt.StopPropagation();
+            });
+
+            label.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                if (!isDragging || evt.pointerId != activePointerId) return;
+
+                isDragging = false;
+                activePointerId = -1;
+                label.ReleasePointer(evt.pointerId);
+                label.RemoveFromClassList("inspector__label-dragging");
+                evt.StopPropagation();
+            });
+
+            label.RegisterCallback<PointerCancelEvent>(evt =>
+            {
+                if (!isDragging || evt.pointerId != activePointerId) return;
+
+                isDragging = false;
+                activePointerId = -1;
+                label.ReleasePointer(evt.pointerId);
+                label.RemoveFromClassList("inspector__label-dragging");
+            });
+
+            // Add draggable class for styling
+            label.AddToClassList("inspector__label-draggable");
+        }
+
         // --- Reflection 헬퍼 메서드 ---
 
         private object GetValue(MemberInfo member)
@@ -549,35 +658,6 @@ namespace VFXComposer.UI
             }
         }
 
-        /// <summary>
-        /// Command pattern으로 값 변경 (Undo/Redo 지원)
-        /// </summary>
-        private void SetValueWithCommand(MemberInfo member, object newValue)
-        {
-            object oldValue = GetValue(member);
-
-            // CommandHistory가 없으면 직접 설정
-            if (commandHistory == null)
-            {
-                SetValue(member, newValue);
-                onValueChanged?.Invoke();
-                return;
-            }
-
-            // Command 패턴으로 실행
-            var command = new ChangePropertyCommand(
-                targetNode,
-                member,
-                oldValue,
-                newValue,
-                onValueChanged
-            );
-            commandHistory.ExecuteCommand(command);
-        }
-
-        /// <summary>
-        /// 필드 정보를 담는 내부 클래스
-        /// </summary>
         private class InspectorFieldInfo
         {
             public MemberInfo MemberInfo;
