@@ -90,7 +90,6 @@ namespace VFXComposer.UI
             var builder = new InspectorBuilder(propertiesContainer, node, () => ExecuteNode(node), timelineController);
             builder.Build();
 
-            // OutputNode의 경우 추가 정보 표시
             if (node is OutputNode)
             {
                 var infoLabel = new Label("This is the final output node.\nConnect texture or color inputs.");
@@ -98,7 +97,6 @@ namespace VFXComposer.UI
                 propertiesContainer.Add(infoLabel);
             }
 
-            // 공통 버튼 (예: 노드 삭제) 추가 - OutputNode는 제외
             if (!(node is OutputNode))
             {
                 AddDeleteButton(node);
