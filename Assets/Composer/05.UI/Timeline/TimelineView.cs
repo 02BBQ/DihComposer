@@ -358,8 +358,10 @@ namespace VFXComposer.UI
             isScrubbing = true;
             // CapturePointer 제거 - 모바일에서 문제 발생
 
-            // 클릭 위치를 시간으로 변환 (contentRect 내부로 제한)
-            float x = Mathf.Clamp(evt.localPosition.x, 0, timeRuler.contentRect.width);
+            // 클릭 위치를 시간으로 변환 (contentRect 기준으로 계산)
+            // localPosition은 border box 기준이므로 contentRect.x (padding-left)를 빼야 함
+            float contentX = evt.localPosition.x - timeRuler.contentRect.x;
+            float x = Mathf.Clamp(contentX, 0, timeRuler.contentRect.width);
             UpdateTimeFromPosition(x);
 
             evt.StopPropagation();
@@ -395,8 +397,10 @@ namespace VFXComposer.UI
 
             if (!isScrubbing) return;
 
-            // 드래그 중 시간 업데이트 (contentRect 내부로 제한)
-            float x = Mathf.Clamp(evt.localPosition.x, 0, timeRuler.contentRect.width);
+            // 드래그 중 시간 업데이트 (contentRect 기준으로 계산)
+            // localPosition은 border box 기준이므로 contentRect.x (padding-left)를 빼야 함
+            float contentX = evt.localPosition.x - timeRuler.contentRect.x;
+            float x = Mathf.Clamp(contentX, 0, timeRuler.contentRect.width);
             UpdateTimeFromPosition(x);
 
             evt.StopPropagation();
@@ -462,9 +466,10 @@ namespace VFXComposer.UI
 
         private void OnTimeChanged(float time)
         {
-            // Playhead 위치 업데이트
+            // Playhead 위치 업데이트 (ruler의 padding-left 고려)
             float x = time * pixelsPerSecond + scrollOffset;
-            playhead.style.left = x;
+            // timeRuler.contentRect.x는 ruler의 padding-left 값
+            playhead.style.left = x + (timeRuler.contentRect.xMin > 0 ? timeRuler.contentRect.x : 16);
 
             // 시간 + 프레임 레이블 업데이트
             int minutes = Mathf.FloorToInt(time / 60f);

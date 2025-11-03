@@ -259,11 +259,19 @@
 .timeline-ruler {
     height: 30px;
     background-color: rgb(64, 64, 64);
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
 }
 
 .timeline-tracks {
     flex-grow: 1;
     background-color: rgb(46, 46, 46);
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
 }
 
 .timeline-playhead {
