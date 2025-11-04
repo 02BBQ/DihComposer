@@ -37,6 +37,7 @@ namespace VFXComposer.UI
             new NodeMenuItem("Math/Subtract", () => new SubtractNode()),
             new NodeMenuItem("Math/Multiply", () => new MultiplyNode()),
             new NodeMenuItem("Math/Power", () => new PowerNode()),
+            new NodeMenuItem("Math/One Minus", () => new OneMinusNode()),
 
             // Animation
             new NodeMenuItem("Animation/Time", () => new TimeNode()),
