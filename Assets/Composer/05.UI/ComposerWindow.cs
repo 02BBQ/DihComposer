@@ -260,10 +260,21 @@ public class ComposerWindow : MonoBehaviour
                 ? $"VFXProject_{System.DateTime.Now:yyyyMMdd_HHmmss}.vfxc"
                 : Path.GetFileName(currentProjectPath);
 
-            string savedPath = ProjectManager.SaveProject(fileName, graph, timelineController);
-            currentProjectPath = savedPath;
+            string tempPath = ProjectManager.SaveProject(fileName, graph, timelineController);
 
-            Debug.Log($"[ComposerWindow] Project saved successfully: {savedPath}");
+            FilePicker.SaveFile(tempPath, (success) =>
+            {
+                if (success)
+                {
+                    currentProjectPath = tempPath;
+                    RecentProjects.AddRecentProject(tempPath);
+                    Debug.Log($"[ComposerWindow] Project saved successfully: {tempPath}");
+                }
+                else
+                {
+                    Debug.LogWarning("[ComposerWindow] Save cancelled or failed");
+                }
+            });
         }
         catch (System.Exception e)
         {
@@ -273,7 +284,7 @@ public class ComposerWindow : MonoBehaviour
 
     void OnLoadProject()
     {
-        FilePicker.PickFile(".vfxc", OnFileSelected, OnFileCancelled);
+        FilePicker.ShowRecentProjects(OnFileSelected, OnFileCancelled);
     }
 
     void OnFileSelected(string filePath)
@@ -293,6 +304,7 @@ public class ComposerWindow : MonoBehaviour
             ProjectManager.RestoreTimeline(timelineController, projectData.timelineData);
 
             currentProjectPath = filePath;
+            RecentProjects.AddRecentProject(filePath);
 
             Debug.Log($"[ComposerWindow] Project loaded successfully: {filePath}");
         }

@@ -5,7 +5,7 @@ namespace VFXComposer.Core
 {
     public class OneMinusNode : Node
     {
-        [InspectorField("Value", Order = 0, Section = "➖ One Minus")]
+        [InspectorField("Value", Order = 0, Section = "One Minus")]
         [VFXComposer.Core.Range(0f, 1f)]
         [InspectorInfo("Calculates 1 - Input:\n• With texture: inverts each pixel\n• Without input: returns 1 - value")]
         public float value = 0.0f;
