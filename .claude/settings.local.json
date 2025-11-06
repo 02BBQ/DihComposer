@@ -1,10 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch",
-      "WebFetch(domain:github.com)",
-      "Bash(xargs:*)",
-      "Bash(powershell -Command \"[guid]::NewGuid().ToString(''N'').Substring(0,32)\")"
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

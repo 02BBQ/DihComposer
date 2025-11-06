@@ -26,7 +26,28 @@ namespace VFXComposer.Core
 
         public static void PickFile(string extension, Action<string> onSelected, Action onCancel = null)
         {
-            string fileType = NativeFilePicker.ConvertExtensionToFileType(extension);
+#if UNITY_ANDROID && !UNITY_EDITOR
+            NativeFilePicker.PickFile((path) =>
+            {
+                if (!string.IsNullOrEmpty(path))
+                {
+                    if (path.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
+                    {
+                        onSelected?.Invoke(path);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[FilePicker] Selected file does not have {extension} extension: {path}");
+                        onCancel?.Invoke();
+                    }
+                }
+                else
+                {
+                    onCancel?.Invoke();
+                }
+            }, "application/octet-stream");
+#else
+            string cleanExtension = extension.TrimStart('.');
 
             NativeFilePicker.PickFile((path) =>
             {
@@ -38,7 +59,8 @@ namespace VFXComposer.Core
                 {
                     onCancel?.Invoke();
                 }
-            }, fileType);
+            }, cleanExtension);
+#endif
         }
 
         public static void SaveFile(string sourcePath, Action<bool> onComplete = null)
