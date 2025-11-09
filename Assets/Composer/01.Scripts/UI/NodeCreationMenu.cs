@@ -24,10 +24,13 @@ namespace VFXComposer.UI
             new NodeMenuItem("Color/Levels", () => new LevelsNode()),
             new NodeMenuItem("Color/HSV Adjust", () => new HSVAdjustNode()),
             new NodeMenuItem("Color/Invert", () => new InvertNode()),
+            new NodeMenuItem("Color/Step", () => new StepNode()),
+            new NodeMenuItem("Color/Smooth Step", () => new SmoothStepNode()),
 
             // Effects
             new NodeMenuItem("Effect/Blur", () => new BlurNode()),
             new NodeMenuItem("Effect/Displace", () => new DisplaceNode()),
+            new NodeMenuItem("Effect/Bevel", () => new BevelNode()),
 
             // Transform
             new NodeMenuItem("Transform/Transform", () => new TransformNode()),
