@@ -137,6 +137,12 @@ public class ComposerWindow : MonoBehaviour
         loadButton.AddToClassList("toolbar-button--load");
         toolbar.Add(loadButton);
 
+        var exportButton = new Button(OnExportProject);
+        exportButton.text = "🎬 Export";
+        exportButton.AddToClassList("toolbar-button");
+        exportButton.AddToClassList("toolbar-button--export");
+        toolbar.Add(exportButton);
+
         var addNodeButton = new Button(() =>
         {
             if (graphView != null)
@@ -317,5 +323,18 @@ public class ComposerWindow : MonoBehaviour
     void OnFileCancelled()
     {
         Debug.Log("[ComposerWindow] File selection cancelled");
+    }
+
+    void OnExportProject()
+    {
+        if (graph == null || timelineController == null)
+        {
+            Debug.LogWarning("[ComposerWindow] Cannot export: graph or timeline is null");
+            return;
+        }
+
+        var exportDialog = new ExportDialog(graph, timelineController, this, currentProjectPath);
+        var root = GetComponent<UIDocument>().rootVisualElement;
+        root.Add(exportDialog);
     }
 }
