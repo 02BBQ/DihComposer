@@ -295,7 +295,35 @@ namespace VFXComposer.UI
         {
             var painter = ctx.painter2D;
             float width = trackList.contentRect.width;
+            float height = trackList.contentRect.height;
             float trackHeight = 24f;
+
+            // ruler의 padding 값을 가져옴 (하드코딩 방지)
+            float paddingOffset = timeRuler != null && timeRuler.contentRect.xMin > 0 ? timeRuler.contentRect.x : 16f;
+
+            // 시간 눈금 선 그리기 (ruler와 동일)
+            float frameDuration = 1f / controller.fps;
+            int totalFrames = Mathf.CeilToInt(controller.duration / frameDuration);
+            int tickInterval = pixelsPerSecond > 200f ? 4 : (pixelsPerSecond > 100f ? 16 : 32);
+
+            for (int frame = 0; frame <= totalFrames; frame += tickInterval)
+            {
+                float time = frame * frameDuration;
+                float x = time * pixelsPerSecond + scrollOffset + paddingOffset;
+
+                if (x < 0 || x > width) continue;
+
+                bool isSecondMark = Mathf.Abs(time - Mathf.Round(time)) < 0.01f;
+
+                // 세로 선 그리기
+                painter.lineWidth = isSecondMark ? 1.5f : 0.5f;
+                painter.strokeColor = isSecondMark ? new Color(0.35f, 0.35f, 0.35f) : new Color(0.25f, 0.25f, 0.25f);
+
+                painter.BeginPath();
+                painter.MoveTo(new Vector2(x, 0));
+                painter.LineTo(new Vector2(x, height));
+                painter.Stroke();
+            }
 
             // 모든 애니메이션 프로퍼티 가져오기
             var animatedProps = controller.GetAllAnimatedProperties();
@@ -308,10 +336,10 @@ namespace VFXComposer.UI
 
                 float y = trackIndex * trackHeight;
 
-                // 키프레임 마커 그리기
+                // 키프레임 마커 그리기 (padding 오프셋 추가)
                 foreach (var keyframe in animProp.keyframes)
                 {
-                    float x = keyframe.time * pixelsPerSecond + scrollOffset;
+                    float x = keyframe.time * pixelsPerSecond + scrollOffset + paddingOffset;
                     if (x < 0 || x > width) continue;
 
                     // 다이아몬드 모양 키프레임

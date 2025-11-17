@@ -37,10 +37,13 @@ namespace VFXComposer.Core.Export
             if (reusableTexture == null)
             {
                 reusableTexture = new Texture2D(exportWidth, exportHeight, TextureFormat.RGBA32, false);
+                Debug.Log($"[FrameCaptureSystem] Created reusable texture: {exportWidth}x{exportHeight}");
             }
 
             int totalFrames = endFrame - startFrame + 1;
             int currentFrameIndex = 0;
+
+            Debug.Log($"[FrameCaptureSystem] Starting capture: frames {startFrame} to {endFrame} (total: {totalFrames})");
 
             for (int frame = startFrame; frame <= endFrame; frame++)
             {
@@ -53,12 +56,14 @@ namespace VFXComposer.Core.Export
 
                 if (outputRT != null)
                 {
+                    Debug.Log($"[FrameCaptureSystem] Frame {frame}: Got RenderTexture {outputRT.width}x{outputRT.height}");
                     RenderTextureToTexture2D(outputRT, reusableTexture);
+                    Debug.Log($"[FrameCaptureSystem] Frame {frame}: Converted to Texture2D, invoking callback");
                     onFrameCaptured?.Invoke(reusableTexture, frame);
                 }
                 else
                 {
-                    Debug.LogWarning($"[FrameCaptureSystem] No output at frame {frame}");
+                    Debug.LogWarning($"[FrameCaptureSystem] No output RenderTexture at frame {frame}");
                 }
 
                 currentFrameIndex++;
@@ -68,24 +73,26 @@ namespace VFXComposer.Core.Export
                 yield return null;
             }
 
+            Debug.Log("[FrameCaptureSystem] Capture complete");
             onComplete?.Invoke();
         }
 
         private RenderTexture GetOutputRenderTexture()
         {
             var outputNodes = graph.GetOutputNodes();
+            Debug.Log($"[FrameCaptureSystem] Found {outputNodes.Count} output nodes");
+
             if (outputNodes.Count > 0)
             {
-                var outputNode = outputNodes[0];
-                if (outputNode.cachedOutputs.TryGetValue("texture_in", out object output))
+                var outputNode = outputNodes[0] as OutputNode;
+                if (outputNode != null)
                 {
-                    return output as RenderTexture;
-                }
-                if (outputNode.cachedOutputs.TryGetValue("color_in", out object colorOutput))
-                {
-                    return colorOutput as RenderTexture;
+                    Debug.Log($"[FrameCaptureSystem] OutputNode texture: {(outputNode.outputTexture != null ? $"{outputNode.outputTexture.width}x{outputNode.outputTexture.height}" : "null")}");
+                    return outputNode.outputTexture;
                 }
             }
+
+            Debug.LogWarning("[FrameCaptureSystem] No valid RenderTexture found in output node");
             return null;
         }
 
@@ -100,7 +107,7 @@ namespace VFXComposer.Core.Export
             RenderTexture.active = previous;
         }
 
-        public void Cleanup()
+        public void Cleanup() 
         {
             if (reusableTexture != null)
             {

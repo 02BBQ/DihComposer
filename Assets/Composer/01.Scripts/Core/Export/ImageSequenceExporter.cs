@@ -56,20 +56,33 @@ namespace VFXComposer.Core.Export
                 {
                     try
                     {
+                        Debug.Log($"[ImageSequenceExporter] Encoding frame {frameNumber} to PNG");
                         byte[] pngData = texture.EncodeToPNG();
+                        Debug.Log($"[ImageSequenceExporter] PNG data size: {pngData?.Length ?? 0} bytes");
+
+                        if (pngData == null || pngData.Length == 0)
+                        {
+                            Debug.LogError($"[ImageSequenceExporter] PNG encoding failed for frame {frameNumber}");
+                            success = false;
+                            return;
+                        }
+
                         string fileName = $"{frameNumber:D4}.png";
                         string filePath = Path.Combine(exportPath, fileName);
+                        Debug.Log($"[ImageSequenceExporter] Writing to: {filePath}");
                         File.WriteAllBytes(filePath, pngData);
+                        Debug.Log($"[ImageSequenceExporter] Successfully saved frame {frameNumber}");
                     }
                     catch (Exception e)
                     {
-                        Debug.LogError($"[ImageSequenceExporter] Failed to save frame {frameNumber}: {e.Message}");
+                        Debug.LogError($"[ImageSequenceExporter] Failed to save frame {frameNumber}: {e.Message}\nStack: {e.StackTrace}");
                         success = false;
                     }
                 },
                 onProgress,
                 () =>
                 {
+                    Debug.Log("[ImageSequenceExporter] Export sequence complete");
                     captureSystem.Cleanup();
                     onComplete?.Invoke(success);
                 }
