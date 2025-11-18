@@ -99,12 +99,34 @@ namespace VFXComposer.Core.Export
         private void RenderTextureToTexture2D(RenderTexture source, Texture2D destination)
         {
             RenderTexture previous = RenderTexture.active;
-            RenderTexture.active = source;
 
-            destination.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0);
-            destination.Apply();
+            // 소스와 목표 크기가 다르면 리사이즈 필요
+            if (source.width != exportWidth || source.height != exportHeight)
+            {
+                Debug.Log($"[FrameCaptureSystem] Resizing from {source.width}x{source.height} to {exportWidth}x{exportHeight}");
 
-            RenderTexture.active = previous;
+                // 임시 RenderTexture 생성 (목표 크기)
+                RenderTexture resized = RenderTexture.GetTemporary(exportWidth, exportHeight, 0, RenderTextureFormat.ARGB32);
+
+                // Graphics.Blit으로 리사이즈
+                Graphics.Blit(source, resized);
+
+                // 리사이즈된 RenderTexture를 Texture2D로 복사
+                RenderTexture.active = resized;
+                destination.ReadPixels(new Rect(0, 0, exportWidth, exportHeight), 0, 0);
+                destination.Apply();
+
+                RenderTexture.active = previous;
+                RenderTexture.ReleaseTemporary(resized);
+            }
+            else
+            {
+                // 크기가 같으면 직접 복사
+                RenderTexture.active = source;
+                destination.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0);
+                destination.Apply();
+                RenderTexture.active = previous;
+            }
         }
 
         public void Cleanup() 
